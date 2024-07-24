@@ -1,0 +1,7 @@
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - gocritic
+    - errname
+    - bodyclose

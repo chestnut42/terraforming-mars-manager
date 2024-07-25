@@ -7,21 +7,11 @@ on:
 
 
 jobs:
-  make:
+  LintTest:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout master
       uses: actions/checkout@main
-
-
-      # Build image
-    - name: Install doctl
-      uses: digitalocean/action-doctl@v2
-      with:
-        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
-    - name: Log in to DigitalOcean
-      run: doctl registry login --expiry-seconds 1200
 
     # Test code
     - name: Lint
@@ -29,12 +19,3 @@ jobs:
 
     - name: Test
       run: make test
-
-
-
-
-    - name: Build image
-      run: docker build -t ${{ secrets.REGISTRY_NAME }}/terraforming-mars-manager:$(echo $GITHUB_SHA | head -c7) .
-
-    - name: Push image
-      run: docker push ${{ secrets.REGISTRY_NAME }}/terraforming-mars-manager:$(echo $GITHUB_SHA | head -c7)

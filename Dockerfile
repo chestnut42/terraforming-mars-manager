@@ -1,5 +1,4 @@
 FROM golang:1.22-bookworm AS builder
-ARG GOGC=off
 
 WORKDIR /app
 COPY go.mod go.sum ./

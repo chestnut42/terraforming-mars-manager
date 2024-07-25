@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	Listen  string `default:":8080"`
-	GameURL URL    `default:"http://localhost:8080/"`
+	GameURL URL    `default:"http://localhost:8090/"`
 }
 
 func NewConfig() (Config, error) {

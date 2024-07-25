@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
 	"syscall"
 
 	"os"
@@ -18,7 +19,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	cfg := NewConfig()
+	cfg := MustNewConfig()
 
 	// logger setup
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -27,6 +28,9 @@ func main() {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		router := http.NewServeMux()
+
+		// Default route
+		router.Handle("/", httputil.NewSingleHostReverseProxy(&cfg.GameURL.URL))
 
 		logger.Info("starting http server", slog.String("addr", cfg.Listen))
 		return httpx.ServeContext(ctx, router, cfg.Listen)

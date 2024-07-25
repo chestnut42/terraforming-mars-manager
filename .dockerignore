@@ -1,0 +1,10 @@
+.git/
+bin/
+tools/
+.dockerignore
+.gitignore
+.golangci.yaml
+Dockerfile
+LICENSE
+Makefile
+README.md

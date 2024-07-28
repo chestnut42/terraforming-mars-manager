@@ -44,6 +44,9 @@ default: all
 ./bin/protoc-gen-grpc-gateway: | ./bin
 	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 
+./bin/protoc-gen-openapiv2: | ./bin
+	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
 .PHONY: clean
 clean:
 	rm -rf ./bin
@@ -54,11 +57,12 @@ clean:
 all: generate lint test build
 
 .PHONY: proto
-proto: ./bin/protoc ./bin/protoc-get-go ./bin/protoc-gen-go-grpc ./bin/protoc-gen-grpc-gateway
+proto: ./bin/protoc ./bin/protoc-get-go ./bin/protoc-gen-go-grpc ./bin/protoc-gen-grpc-gateway ./bin/protoc-gen-openapiv2
 	protoc \
 		--go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		--grpc-gateway_out=. --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
+		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative --grpc-gateway_opt=generate_unbound_methods=true \
+		--openapiv2_out=. --openapiv2_opt=generate_unbound_methods=true \
 		./pkg/api/users.proto
 
 .PHONY: generate

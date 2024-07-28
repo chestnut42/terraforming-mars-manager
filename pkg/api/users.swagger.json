@@ -16,7 +16,7 @@
     "application/json"
   ],
   "paths": {
-    "/api.Users/Login": {
+    "/manager/api/v1/login": {
       "post": {
         "operationId": "Users_Login",
         "responses": {

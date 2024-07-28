@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
@@ -24,15 +25,22 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	ctx = logx.WithLogger(ctx, logger)
 
+	docsSvc, err := docs.NewService()
+	checkError(err)
+
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		router := http.NewServeMux()
+		// App Router
+		appRouter := http.NewServeMux()
+		docsSvc.ConfigureRouter(appRouter, "/manager/docs")
 
-		// Default route
-		router.Handle("/", httputil.NewSingleHostReverseProxy(&cfg.GameURL.URL))
+		// Root Router
+		root := http.NewServeMux()
+		root.Handle("/manager/", appRouter)
+		root.Handle("/", httputil.NewSingleHostReverseProxy(&cfg.GameURL.URL))
 
 		logger.Info("starting http server", slog.String("addr", cfg.Listen))
-		return httpx.ServeContext(ctx, router, cfg.Listen)
+		return httpx.ServeContext(ctx, root, cfg.Listen)
 	})
 	eg.Go(func() error {
 		return signalx.ListenContext(ctx, syscall.SIGTERM, syscall.SIGINT)
@@ -44,5 +52,11 @@ func main() {
 		} else {
 			logger.Error("terminated with error", slog.String("error", err.Error()))
 		}
+	}
+}
+
+func checkError(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

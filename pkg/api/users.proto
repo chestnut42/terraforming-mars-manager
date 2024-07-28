@@ -1,0 +1,17 @@
+syntax = "proto3";
+package api;
+option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
+
+service Users {
+  rpc Login(Login.Request) returns (Login.Response);
+}
+
+message Login {
+  message Request {
+    string apple_jwt = 1;
+  }
+
+  message Response {
+    string bearer = 1;
+  }
+}

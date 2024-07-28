@@ -2,6 +2,12 @@ export GOBIN := $(PWD)/bin
 export PATH := $(GOBIN):$(PATH)
 
 GOLANGLINT_VERSION := 1.59.1
+PROTOC_VERSION = 27.2
+
+ifeq ($(shell uname), Darwin)
+	OS_NAME=osx
+endif
+ARCH_NAME=$(shell uname -m)
 
 
 .PHONY: default
@@ -24,6 +30,23 @@ default: all
 ./bin/minimock: | ./bin
 	go install -modfile tools/go.mod github.com/gojuno/minimock/v3/cmd/minimock
 
+./bin/protoc: | ./bin
+	curl -sSfL https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(OS_NAME)-$(ARCH_NAME).zip -o ./bin/protoc-$(PROTOC_VERSION).zip
+	unzip ./bin/protoc-$(PROTOC_VERSION).zip -d ./bin/protoc-$(PROTOC_VERSION)
+	mv ./bin/protoc-$(PROTOC_VERSION)/bin/protoc ./bin/protoc
+
+./bin/protoc-get-go: | ./bin
+	go install -modfile tools/go.mod google.golang.org/protobuf/cmd/protoc-gen-go
+
+./bin/protoc-gen-go-grpc: | ./bin
+	go install -modfile tools/go.mod google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+./bin/protoc-gen-grpc-gateway: | ./bin
+	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+
+./bin/protoc-gen-openapiv2: | ./bin
+	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
 .PHONY: clean
 clean:
 	rm -rf ./bin
@@ -32,6 +55,15 @@ clean:
 
 .PHONY: all
 all: generate lint test build
+
+.PHONY: proto
+proto: ./bin/protoc ./bin/protoc-get-go ./bin/protoc-gen-go-grpc ./bin/protoc-gen-grpc-gateway ./bin/protoc-gen-openapiv2
+	protoc \
+		--go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative --grpc-gateway_opt=generate_unbound_methods=true \
+		--openapiv2_out=. --openapiv2_opt=generate_unbound_methods=true \
+		./pkg/api/users.proto
 
 .PHONY: generate
 generate: ./bin/gowrap ./bin/minimock ./bin/goimports

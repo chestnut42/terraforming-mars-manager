@@ -9,12 +9,15 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/app"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
+	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
 func main() {
@@ -28,10 +31,17 @@ func main() {
 	docsSvc, err := docs.NewService()
 	checkError(err)
 
+	appSvc := app.NewService()
+
+	grpcMux := runtime.NewServeMux()
+	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)
+	checkError(err)
+
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		// App Router
 		appRouter := http.NewServeMux()
+		appRouter.Handle("/manager/api/", grpcMux)
 		docsSvc.ConfigureRouter(appRouter, "/manager/docs")
 
 		// Root Router

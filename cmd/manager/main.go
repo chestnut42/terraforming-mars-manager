@@ -6,15 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
-	"syscall"
-
 	"os"
+	"syscall"
 
 	"golang.org/x/sync/errgroup"
 
-	"terraforming-mars-manager/internal/framework/httpx"
-	"terraforming-mars-manager/internal/framework/logx"
-	"terraforming-mars-manager/internal/framework/signalx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
 )
 
 func main() {

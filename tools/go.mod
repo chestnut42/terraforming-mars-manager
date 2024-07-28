@@ -5,6 +5,8 @@ go 1.22
 require (
 	github.com/gojuno/minimock/v3 v3.3.13
 	github.com/hexdigest/gowrap v1.3.10
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
+	google.golang.org/protobuf v1.34.2
 )
 
 require (

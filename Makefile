@@ -91,8 +91,13 @@ generate: ./bin/gowrap ./bin/minimock ./bin/goimports
 lint: ./bin/golangci-lint
 	golangci-lint run -v ./...
 
+.PHONY: test-prepare
+test-prepare:
+	docker rm -f terraforming-mars-postgres-test || true
+	docker run --name terraforming-mars-postgres-test -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres:16.3
+
 .PHONY: test
-test:
+test: test-prepare
 	GOGC=off go test -race $(GOFLAGS) -v ./... -count 1
 
 .PHONY: build

@@ -34,7 +34,7 @@ func main() {
 
 	db, err := database.PrepareDB(cfg.PostgresDSN)
 	checkError(err)
-	storageSvc, err := storage.New(db)
+	_, err = storage.New(db)
 	checkError(err)
 
 	docsSvc, err := docs.NewService()

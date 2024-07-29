@@ -1,6 +1,6 @@
 CREATE TABLE users (
     id              TEXT NOT NULL CHECK (id != ''),
-    nickname        TEXT,
+    nickname        TEXT NOT NULL,
 
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
 

@@ -26,8 +26,8 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	upsertUser, err := db.Prepare(`
-		INSERT INTO users(id, created_at)
-		VALUES ($1, $2)
+		INSERT INTO users(id, nickname, created_at)
+		VALUES ($1, '', $2)
 		ON CONFLICT(id) DO NOTHING
 	`)
 	if err != nil {

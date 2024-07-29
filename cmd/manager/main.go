@@ -9,14 +9,18 @@ import (
 	"os"
 	"syscall"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
+	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
@@ -28,9 +32,13 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	ctx = logx.WithLogger(ctx, logger)
 
-	docsSvc, err := docs.NewService()
+	db, err := database.PrepareDB(cfg.PostgresDSN)
+	checkError(err)
+	storageSvc, err := storage.New(db)
 	checkError(err)
 
+	docsSvc, err := docs.NewService()
+	checkError(err)
 	appSvc := app.NewService()
 
 	grpcMux := runtime.NewServeMux()

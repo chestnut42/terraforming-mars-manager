@@ -1,8 +1,30 @@
 syntax = "proto3";
 package api;
-option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
 
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  responses: {
+    key: "401"
+    value: {
+      description: "You have provided no authorization token or the token provided is invalid."
+    }
+  }
+  security_definitions: {
+    security: {
+      key: "Bearer"
+      value: {
+        type: TYPE_API_KEY
+        name: "Authorization"
+        in: IN_HEADER,
+        description: "Enter the token with the `Bearer: ` prefix, e.g. ""Bearer abcde12345""."
+      }
+    }
+  }
+};
 
 service Users {
   rpc Login(Login.Request) returns (Login.Response) {
@@ -10,15 +32,22 @@ service Users {
       post: "/manager/api/v1/login"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: {
+        security_requirement {
+          key: "Bearer"
+        }
+      }
+    };
   }
 }
 
 message Login {
-  message Request {
-    string apple_jwt = 1;
-  }
+  message Request {}
 
   message Response {
-    string bearer = 1;
+    string userId = 1;
+    string nickname = 2;
+    google.protobuf.Timestamp created_at = 3;
   }
 }

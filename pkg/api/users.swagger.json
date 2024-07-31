@@ -23,8 +23,12 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/LoginResponse"
+              "$ref": "#/definitions/apiLoginResponse"
             }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
           },
           "default": {
             "description": "An unexpected error response.",
@@ -45,24 +49,31 @@
         ],
         "tags": [
           "Users"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     }
   },
   "definitions": {
     "LoginRequest": {
-      "type": "object",
-      "properties": {
-        "appleJwt": {
-          "type": "string"
-        }
-      }
+      "type": "object"
     },
-    "LoginResponse": {
+    "apiLoginResponse": {
       "type": "object",
       "properties": {
-        "bearer": {
+        "userId": {
           "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -93,6 +104,14 @@
           }
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "description": "Enter the token with the `Bearer: ` prefix, e.g. Bearer abcde12345.",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }

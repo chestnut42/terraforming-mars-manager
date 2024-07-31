@@ -9,14 +9,19 @@ import (
 	"os"
 	"syscall"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
+	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
+	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
@@ -28,10 +33,16 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	ctx = logx.WithLogger(ctx, logger)
 
-	docsSvc, err := docs.NewService()
+	db, err := database.PrepareDB(cfg.PostgresDSN)
+	checkError(err)
+	storageSvc, err := storage.New(db)
 	checkError(err)
 
-	appSvc := app.NewService()
+	docsSvc, err := docs.NewService()
+	checkError(err)
+	appSvc := app.NewService(storageSvc)
+	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
+	checkError(err)
 
 	grpcMux := runtime.NewServeMux()
 	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)
@@ -41,7 +52,8 @@ func main() {
 	eg.Go(func() error {
 		// App Router
 		appRouter := http.NewServeMux()
-		appRouter.Handle("/manager/api/", grpcMux)
+		appRouter.Handle("/manager/api/",
+			httpx.WithAuthorization(grpcMux, authSvc))
 		docsSvc.ConfigureRouter(appRouter, "/manager/docs")
 
 		// Root Router

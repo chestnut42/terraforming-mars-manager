@@ -8,8 +8,10 @@ import (
 )
 
 type Config struct {
-	Listen  string `default:":8080"`
-	GameURL URL    `envconfig:"game_url" default:"http://localhost:8090/"`
+	Listen      string `default:":8080"`
+	GameURL     URL    `envconfig:"game_url" default:"http://localhost:8090/"`
+	PostgresDSN string `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
+	AppleKeys   string `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
 }
 
 func NewConfig() (Config, error) {

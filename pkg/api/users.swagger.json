@@ -43,7 +43,77 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/LoginRequest"
+              "$ref": "#/definitions/apiLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/manager/api/v1/me": {
+      "get": {
+        "operationId": "Users_GetMe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetMeResponse"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "Users_UpdateMe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUpdateMeResponse"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUpdateMeRequest"
             }
           }
         ],
@@ -59,10 +129,48 @@
     }
   },
   "definitions": {
-    "LoginRequest": {
+    "apiGetMeResponse": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "apiLoginRequest": {
       "type": "object"
     },
     "apiLoginResponse": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "apiUpdateMeRequest": {
+      "type": "object",
+      "properties": {
+        "nickname": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUpdateMeResponse": {
       "type": "object",
       "properties": {
         "userId": {

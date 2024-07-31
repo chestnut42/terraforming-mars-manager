@@ -3,6 +3,7 @@ package api;
 option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
 
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
 service Users {
   rpc Login(Login.Request) returns (Login.Response) {
@@ -14,11 +15,11 @@ service Users {
 }
 
 message Login {
-  message Request {
-    string apple_jwt = 1;
-  }
+  message Request {}
 
   message Response {
-    string bearer = 1;
+    string userId = 1;
+    string nickname = 2;
+    google.protobuf.Timestamp created_at = 3;
   }
 }

@@ -15,6 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
+	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
@@ -34,12 +35,14 @@ func main() {
 
 	db, err := database.PrepareDB(cfg.PostgresDSN)
 	checkError(err)
-	_, err = storage.New(db)
+	storageSvc, err := storage.New(db)
 	checkError(err)
 
 	docsSvc, err := docs.NewService()
 	checkError(err)
-	appSvc := app.NewService()
+	appSvc := app.NewService(storageSvc)
+	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
+	checkError(err)
 
 	grpcMux := runtime.NewServeMux()
 	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)
@@ -49,7 +52,8 @@ func main() {
 	eg.Go(func() error {
 		// App Router
 		appRouter := http.NewServeMux()
-		appRouter.Handle("/manager/api/", grpcMux)
+		appRouter.Handle("/manager/api/",
+			httpx.WithAuthorization(grpcMux, authSvc))
 		docsSvc.ConfigureRouter(appRouter, "/manager/docs")
 
 		// Root Router

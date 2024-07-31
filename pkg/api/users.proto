@@ -40,10 +40,61 @@ service Users {
       }
     };
   }
+
+  rpc GetMe(GetMe.Request) returns (GetMe.Response) {
+    option (google.api.http) = {
+      get: "/manager/api/v1/me"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: {
+        security_requirement {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  rpc UpdateMe(UpdateMe.Request) returns (UpdateMe.Response) {
+    option (google.api.http) = {
+      post: "/manager/api/v1/me"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: {
+        security_requirement {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
+
+
 
 message Login {
   message Request {}
+
+  message Response {
+    string userId = 1;
+    string nickname = 2;
+    google.protobuf.Timestamp created_at = 3;
+  }
+}
+
+
+message GetMe {
+  message Request {}
+
+  message Response {
+    string userId = 1;
+    string nickname = 2;
+    google.protobuf.Timestamp created_at = 3;
+  }
+}
+
+message UpdateMe {
+  message Request {
+    string nickname = 1;
+  }
 
   message Response {
     string userId = 1;

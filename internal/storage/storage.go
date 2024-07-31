@@ -12,6 +12,7 @@ type Storage struct {
 	db *sql.DB
 
 	getUserById *sql.Stmt
+	updateUser  *sql.Stmt
 	upsertUser  *sql.Stmt
 
 	nowFunc func() time.Time
@@ -23,6 +24,14 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
+	}
+
+	updateUser, err := db.Prepare(`
+		UPDATE users SET nickname = $1 WHERE id = $2
+		RETURNING id, nickname, created_at
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateUser: %w", err)
 	}
 
 	upsertUser, err := db.Prepare(`
@@ -38,6 +47,7 @@ func New(db *sql.DB) (*Storage, error) {
 		db: db,
 
 		getUserById: getUserById,
+		updateUser:  updateUser,
 		upsertUser:  upsertUser,
 
 		nowFunc: time.Now,
@@ -56,6 +66,23 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &user, nil
+}
+
+func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
+	updated := User{}
+
+	err := s.updateUser.QueryRowContext(ctx, user.Nickname, user.UserId).
+		Scan(&updated.UserId, &updated.Nickname, &updated.CreatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		if errIsUniqueViolation(err) {
+			return nil, ErrAlreadyExists
+		}
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+	return &updated, nil
 }
 
 func (s *Storage) UpsertUser(ctx context.Context, userId string) error {

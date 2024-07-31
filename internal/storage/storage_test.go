@@ -79,4 +79,15 @@ func TestStorage_Users(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, ErrNotFound)
 	})
+
+	t.Run("UpdateUser - already exists", func(t *testing.T) {
+		err := storage.UpsertUser(ctx, "second test user id")
+		assert.NilError(t, err)
+
+		_, err = storage.UpdateUser(ctx, &User{
+			UserId:   "second test user id",
+			Nickname: "new test nickname",
+		})
+		assert.ErrorIs(t, err, ErrAlreadyExists)
+	})
 }

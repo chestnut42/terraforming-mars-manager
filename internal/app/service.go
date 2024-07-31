@@ -87,6 +87,9 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
+		if errors.Is(err, storage.ErrAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

@@ -77,6 +77,9 @@ func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
+		if errIsUniqueViolation(err) {
+			return nil, ErrAlreadyExists
+		}
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 	return &updated, nil

@@ -49,6 +49,11 @@
         ],
         "tags": [
           "Users"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     }

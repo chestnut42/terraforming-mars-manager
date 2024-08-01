@@ -50,10 +50,12 @@ func main() {
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
+		apiHandler := httpx.WithAuthorization(grpcMux, authSvc)
+		apiHandler = httpx.WithLogging(apiHandler)
+
 		// App Router
 		appRouter := http.NewServeMux()
-		appRouter.Handle("/manager/api/",
-			httpx.WithAuthorization(grpcMux, authSvc))
+		appRouter.Handle("/manager/api/", apiHandler)
 		docsSvc.ConfigureRouter(appRouter, "/manager/docs")
 
 		// Root Router

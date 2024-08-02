@@ -14,8 +14,7 @@ enum PlayerColor {
   PURPLE   = 5;
   ORANGE   = 6;
   PINK     = 7;
-  NEUTRAL  = 8;
-  BRONZE   = 9;
+  BRONZE   = 8;
 }
 
 message UserSettings {

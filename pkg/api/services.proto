@@ -2,8 +2,8 @@ syntax = "proto3";
 package api;
 
 import "google/api/annotations.proto";
-import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "pkg/api/user.proto";
 
 option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -26,6 +26,8 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   }
 };
 
+
+
 service Users {
   rpc Login(Login.Request) returns (Login.Response) {
     option (google.api.http) = {
@@ -33,11 +35,7 @@ service Users {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      security: {
-        security_requirement {
-          key: "Bearer"
-        }
-      }
+      security: { security_requirement { key: "Bearer" }}
     };
   }
 
@@ -46,11 +44,7 @@ service Users {
       get: "/manager/api/v1/me"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      security: {
-        security_requirement {
-          key: "Bearer"
-        }
-      }
+      security: { security_requirement { key: "Bearer" }}
     };
   }
   rpc UpdateMe(UpdateMe.Request) returns (UpdateMe.Response) {
@@ -59,11 +53,27 @@ service Users {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      security: {
-        security_requirement {
-          key: "Bearer"
-        }
-      }
+      security: { security_requirement { key: "Bearer" }}
+    };
+  }
+
+  rpc UpdateDeviceToken(UpdateDeviceToken.Request) returns (UpdateDeviceToken.Response) {
+    option (google.api.http) = {
+      post: "/manager/api/v1/me/device-token"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: { security_requirement { key: "Bearer" }}
+    };
+  }
+
+  rpc SearchUser(SearchUser.Request) returns (SearchUser.Response) {
+    option (google.api.http) = {
+      post: "/manager/api/v1/search"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: { security_requirement { key: "Bearer" }}
     };
   }
 }
@@ -74,31 +84,42 @@ message Login {
   message Request {}
 
   message Response {
-    string userId = 1;
-    string nickname = 2;
-    google.protobuf.Timestamp created_at = 3;
+    User user = 1;
   }
 }
-
 
 message GetMe {
   message Request {}
 
   message Response {
-    string userId = 1;
-    string nickname = 2;
-    google.protobuf.Timestamp created_at = 3;
+    User user = 1;
   }
 }
 
 message UpdateMe {
   message Request {
-    string nickname = 1;
+    UserSettings settings = 1;
   }
 
   message Response {
-    string userId = 1;
-    string nickname = 2;
-    google.protobuf.Timestamp created_at = 3;
+    User user = 1;
+  }
+}
+
+message UpdateDeviceToken {
+  message Request {
+    bytes device_token = 1;
+  }
+
+  message Response {}
+}
+
+message SearchUser {
+  message Request {
+    string search = 1;
+  }
+
+  message Response {
+    repeated UserSettings users = 1;
   }
 }

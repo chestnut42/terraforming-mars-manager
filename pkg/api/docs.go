@@ -2,5 +2,5 @@ package api
 
 import _ "embed"
 
-//go:embed users.swagger.json
+//go:embed services.swagger.json
 var SwaggerJson []byte

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -15,7 +16,7 @@ import (
 type Storage interface {
 	GetUserById(ctx context.Context, userId string) (*storage.User, error)
 	UpdateUser(ctx context.Context, user *storage.User) (*storage.User, error)
-	UpsertUser(ctx context.Context, userId string) error
+	UpsertUser(ctx context.Context, user *storage.User) error
 }
 
 type Service struct {
@@ -36,7 +37,12 @@ func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_R
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
-	if err := s.storage.UpsertUser(ctx, user.Id); err != nil {
+	newNickName := "Player " + uuid.NewString()[:6]
+
+	if err := s.storage.UpsertUser(ctx, &storage.User{
+		UserId:   user.Id,
+		Nickname: newNickName,
+	}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	storageUser, err := s.storage.GetUserById(ctx, user.Id)
@@ -92,4 +98,12 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 	return &api.UpdateMe_Response{
 		User: userToAPI(storageUser),
 	}, nil
+}
+
+func (s *Service) UpdateDeviceToken(ctx context.Context, req *api.UpdateDeviceToken_Request) (*api.UpdateDeviceToken_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (*api.SearchUser_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "")
 }

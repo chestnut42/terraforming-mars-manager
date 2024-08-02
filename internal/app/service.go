@@ -3,8 +3,9 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -36,8 +37,7 @@ func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_R
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
-
-	newNickName := "Player " + uuid.NewString()[:6]
+	newNickName := fmt.Sprintf("Player %X", rand.Int())
 
 	if err := s.storage.UpsertUser(ctx, &storage.User{
 		UserId:   user.Id,

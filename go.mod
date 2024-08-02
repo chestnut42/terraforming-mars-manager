@@ -5,7 +5,6 @@ go 1.22
 require (
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/golang-migrate/migrate/v4 v4.17.1
-	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/kelseyhightower/envconfig v1.4.0

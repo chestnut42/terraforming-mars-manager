@@ -1,0 +1,30 @@
+syntax = "proto3";
+package api;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/chestnut42/terraforming-mars-manager/pkg/api";
+
+enum PlayerColor {
+  BLUE     = 0;
+  RED      = 1;
+  YELLOW   = 2;
+  GREEN    = 3;
+  BLACK    = 4;
+  PURPLE   = 5;
+  ORANGE   = 6;
+  PINK     = 7;
+  NEUTRAL  = 8;
+  BRONZE   = 9;
+}
+
+message UserSettings {
+  string nickname = 1;
+  PlayerColor color = 2;
+}
+
+message User {
+  string id = 1;
+  UserSettings settings = 2;
+  google.protobuf.Timestamp created_at = 3;
+}

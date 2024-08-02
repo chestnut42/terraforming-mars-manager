@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.4.0
 // - protoc             v5.27.2
-// source: pkg/api/users.proto
+// source: pkg/api/services.proto
 
 package api
 
@@ -19,9 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Users_Login_FullMethodName    = "/api.Users/Login"
-	Users_GetMe_FullMethodName    = "/api.Users/GetMe"
-	Users_UpdateMe_FullMethodName = "/api.Users/UpdateMe"
+	Users_Login_FullMethodName             = "/api.Users/Login"
+	Users_GetMe_FullMethodName             = "/api.Users/GetMe"
+	Users_UpdateMe_FullMethodName          = "/api.Users/UpdateMe"
+	Users_UpdateDeviceToken_FullMethodName = "/api.Users/UpdateDeviceToken"
+	Users_SearchUser_FullMethodName        = "/api.Users/SearchUser"
 )
 
 // UsersClient is the client API for Users service.
@@ -31,6 +33,8 @@ type UsersClient interface {
 	Login(ctx context.Context, in *Login_Request, opts ...grpc.CallOption) (*Login_Response, error)
 	GetMe(ctx context.Context, in *GetMe_Request, opts ...grpc.CallOption) (*GetMe_Response, error)
 	UpdateMe(ctx context.Context, in *UpdateMe_Request, opts ...grpc.CallOption) (*UpdateMe_Response, error)
+	UpdateDeviceToken(ctx context.Context, in *UpdateDeviceToken_Request, opts ...grpc.CallOption) (*UpdateDeviceToken_Response, error)
+	SearchUser(ctx context.Context, in *SearchUser_Request, opts ...grpc.CallOption) (*SearchUser_Response, error)
 }
 
 type usersClient struct {
@@ -71,6 +75,26 @@ func (c *usersClient) UpdateMe(ctx context.Context, in *UpdateMe_Request, opts .
 	return out, nil
 }
 
+func (c *usersClient) UpdateDeviceToken(ctx context.Context, in *UpdateDeviceToken_Request, opts ...grpc.CallOption) (*UpdateDeviceToken_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateDeviceToken_Response)
+	err := c.cc.Invoke(ctx, Users_UpdateDeviceToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *usersClient) SearchUser(ctx context.Context, in *SearchUser_Request, opts ...grpc.CallOption) (*SearchUser_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchUser_Response)
+	err := c.cc.Invoke(ctx, Users_SearchUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UsersServer is the server API for Users service.
 // All implementations must embed UnimplementedUsersServer
 // for forward compatibility
@@ -78,6 +102,8 @@ type UsersServer interface {
 	Login(context.Context, *Login_Request) (*Login_Response, error)
 	GetMe(context.Context, *GetMe_Request) (*GetMe_Response, error)
 	UpdateMe(context.Context, *UpdateMe_Request) (*UpdateMe_Response, error)
+	UpdateDeviceToken(context.Context, *UpdateDeviceToken_Request) (*UpdateDeviceToken_Response, error)
+	SearchUser(context.Context, *SearchUser_Request) (*SearchUser_Response, error)
 	mustEmbedUnimplementedUsersServer()
 }
 
@@ -93,6 +119,12 @@ func (UnimplementedUsersServer) GetMe(context.Context, *GetMe_Request) (*GetMe_R
 }
 func (UnimplementedUsersServer) UpdateMe(context.Context, *UpdateMe_Request) (*UpdateMe_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateMe not implemented")
+}
+func (UnimplementedUsersServer) UpdateDeviceToken(context.Context, *UpdateDeviceToken_Request) (*UpdateDeviceToken_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeviceToken not implemented")
+}
+func (UnimplementedUsersServer) SearchUser(context.Context, *SearchUser_Request) (*SearchUser_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchUser not implemented")
 }
 func (UnimplementedUsersServer) mustEmbedUnimplementedUsersServer() {}
 
@@ -161,6 +193,42 @@ func _Users_UpdateMe_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Users_UpdateDeviceToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDeviceToken_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UsersServer).UpdateDeviceToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Users_UpdateDeviceToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UsersServer).UpdateDeviceToken(ctx, req.(*UpdateDeviceToken_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Users_SearchUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchUser_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UsersServer).SearchUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Users_SearchUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UsersServer).SearchUser(ctx, req.(*SearchUser_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Users_ServiceDesc is the grpc.ServiceDesc for Users service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -180,7 +248,15 @@ var Users_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateMe",
 			Handler:    _Users_UpdateMe_Handler,
 		},
+		{
+			MethodName: "UpdateDeviceToken",
+			Handler:    _Users_UpdateDeviceToken_Handler,
+		},
+		{
+			MethodName: "SearchUser",
+			Handler:    _Users_SearchUser_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/api/users.proto",
+	Metadata: "pkg/api/services.proto",
 }

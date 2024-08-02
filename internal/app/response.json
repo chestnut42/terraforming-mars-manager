@@ -1,0 +1,59 @@
+{
+  "activePlayer": "orange",
+  "id": "g15db787ffe07",
+  "phase": "research",
+  "players": [
+    {
+      "color": "orange",
+      "id": "pd102a414e5e1",
+      "name": "qweasd"
+    },
+    {
+      "color": "yellow",
+      "id": "pe3f6d5f8be7e",
+      "name": "asdqwe"
+    }
+  ],
+  "spectatorId": "sceab4127915f",
+  "gameOptions": {
+    "altVenusBoard": false,
+    "aresExtension": false,
+    "boardName": "tharsis",
+    "bannedCards": [],
+    "includedCards": [],
+    "ceoExtension": false,
+    "coloniesExtension": false,
+    "communityCardsOption": false,
+    "corporateEra": true,
+    "draftVariant": false,
+    "escapeVelocityMode": false,
+    "escapeVelocityBonusSeconds": 2,
+    "fastModeOption": false,
+    "includeFanMA": false,
+    "includeVenusMA": true,
+    "initialDraftVariant": false,
+    "moonExpansion": false,
+    "pathfindersExpansion": false,
+    "preludeDraftVariant": true,
+    "preludeExtension": true,
+    "prelude2Expansion": false,
+    "promoCardsOption": false,
+    "politicalAgendasExtension": "Standard",
+    "removeNegativeGlobalEvents": false,
+    "showOtherPlayersVP": true,
+    "showTimers": true,
+    "shuffleMapOption": false,
+    "solarPhaseOption": false,
+    "soloTR": false,
+    "randomMA": "No randomization",
+    "requiresMoonTrackCompletion": false,
+    "requiresVenusTrackCompletion": false,
+    "turmoilExtension": false,
+    "twoCorpsVariant": false,
+    "venusNextExtension": true,
+    "undoOption": true,
+    "underworldExpansion": false
+  },
+  "lastSoloGeneration": 12,
+  "expectedPurgeTimeMs": 1723486813151
+}

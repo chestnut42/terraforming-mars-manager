@@ -6,7 +6,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
@@ -31,7 +30,7 @@ func NewService(storage Storage) *Service {
 	}
 }
 
-func (s *Service) Login(ctx context.Context, req *api.Login_Request) (*api.Login_Response, error) {
+func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_Response, error) {
 	user, ok := auth.UserFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user not found")
@@ -46,9 +45,7 @@ func (s *Service) Login(ctx context.Context, req *api.Login_Request) (*api.Login
 	}
 
 	return &api.Login_Response{
-		UserId:    storageUser.UserId,
-		Nickname:  storageUser.Nickname,
-		CreatedAt: timestamppb.New(storageUser.CreatedAt),
+		User: userToAPI(storageUser),
 	}, nil
 }
 
@@ -67,9 +64,7 @@ func (s *Service) GetMe(ctx context.Context, _ *api.GetMe_Request) (*api.GetMe_R
 	}
 
 	return &api.GetMe_Response{
-		UserId:    storageUser.UserId,
-		Nickname:  storageUser.Nickname,
-		CreatedAt: timestamppb.New(storageUser.CreatedAt),
+		User: userToAPI(storageUser),
 	}, nil
 }
 
@@ -81,7 +76,8 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 
 	storageUser, err := s.storage.UpdateUser(ctx, &storage.User{
 		UserId:   user.Id,
-		Nickname: req.GetNickname(),
+		Nickname: req.GetSettings().GetNickname(),
+		Color:    req.GetSettings().GetColor(),
 	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -94,8 +90,6 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 	}
 
 	return &api.UpdateMe_Response{
-		UserId:    storageUser.UserId,
-		Nickname:  storageUser.Nickname,
-		CreatedAt: timestamppb.New(storageUser.CreatedAt),
+		User: userToAPI(storageUser),
 	}, nil
 }

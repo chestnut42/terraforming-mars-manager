@@ -96,7 +96,7 @@ proto: ./bin/include/google/api ./bin/include/google/protobuf ./bin/include/prot
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative --grpc-gateway_opt=generate_unbound_methods=true \
 		--openapiv2_out=. --openapiv2_opt=generate_unbound_methods=true \
-		./pkg/api/users.proto
+		./pkg/api/*.proto
 
 .PHONY: generate
 generate: ./bin/gowrap ./bin/minimock ./bin/goimports

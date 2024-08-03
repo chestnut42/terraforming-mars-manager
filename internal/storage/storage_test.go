@@ -140,12 +140,12 @@ func TestStorage_Users(t *testing.T) {
 		}
 
 		t.Run("success - exact", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix middle nickname suffix", 5)
+			got, err := storage.SearchUsers(ctx, "prefix middle nickname suffix", 5, "")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, []*User{{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2}})
 		})
 		t.Run("success - prefix", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix ", 5)
+			got, err := storage.SearchUsers(ctx, "prefix ", 5, "")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, []*User{
 				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
@@ -154,7 +154,7 @@ func TestStorage_Users(t *testing.T) {
 			})
 		})
 		t.Run("success - suffix", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "suffix", 5)
+			got, err := storage.SearchUsers(ctx, "suffix", 5, "")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, []*User{
 				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
@@ -162,7 +162,7 @@ func TestStorage_Users(t *testing.T) {
 			})
 		})
 		t.Run("success - middle", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "middle", 5)
+			got, err := storage.SearchUsers(ctx, "middle", 5, "")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, []*User{
 				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
@@ -170,15 +170,23 @@ func TestStorage_Users(t *testing.T) {
 			})
 		})
 		t.Run("success - limit", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix ", 2)
+			got, err := storage.SearchUsers(ctx, "prefix ", 2, "")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, []*User{
 				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
 				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: now2},
 			})
 		})
+		t.Run("success - exclude", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "prefix ", 5, "search 2")
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{
+				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
+				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: now2},
+			})
+		})
 		t.Run("error - not found", func(t *testing.T) {
-			_, err := storage.SearchUsers(ctx, "some invalid term", 5)
+			_, err := storage.SearchUsers(ctx, "some invalid term", 5, "")
 			assert.ErrorIs(t, err, ErrNotFound)
 		})
 	})

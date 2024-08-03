@@ -31,7 +31,8 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	searchUsers, err := db.Prepare(`
-		SELECT id, nickname, color, created_at FROM users WHERE nickname LIKE $1 ORDER BY nickname LIMIT $2
+		SELECT id, nickname, color, created_at FROM users
+			WHERE nickname LIKE $1 AND id != $2 ORDER BY nickname LIMIT $3
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare searchUsers: %w", err)
@@ -91,8 +92,8 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 	return &user, nil
 }
 
-func (s *Storage) SearchUsers(ctx context.Context, search string, limit int) ([]*User, error) {
-	rows, err := s.searchUsers.QueryContext(ctx, "%"+search+"%", limit)
+func (s *Storage) SearchUsers(ctx context.Context, search string, limit int, excludeUser string) ([]*User, error) {
+	rows, err := s.searchUsers.QueryContext(ctx, "%"+search+"%", excludeUser, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}

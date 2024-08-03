@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -112,5 +113,20 @@ func TestStorage_Users(t *testing.T) {
 			Nickname: "third test user nickname",
 		})
 		assert.ErrorIs(t, err, ErrAlreadyExists)
+	})
+
+	t.Run("UpdateDeviceToken - success", func(t *testing.T) {
+		err := storage.UpsertUser(ctx, &User{
+			UserId:   "device token user",
+			Nickname: "device token user nickname",
+		})
+		assert.NilError(t, err)
+
+		err = storage.UpdateDeviceToken(ctx, "device token user", []byte("device token"))
+		assert.NilError(t, err)
+
+		got, err := storage.GetUserById(ctx, "device token user")
+		assert.NilError(t, err)
+		assert.Assert(t, bytes.Equal(got.DeviceToken, []byte("device token")))
 	})
 }

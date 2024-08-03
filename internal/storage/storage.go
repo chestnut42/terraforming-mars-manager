@@ -13,19 +13,27 @@ import (
 type Storage struct {
 	db *sql.DB
 
-	getUserById *sql.Stmt
-	updateUser  *sql.Stmt
-	upsertUser  *sql.Stmt
+	getUserById       *sql.Stmt
+	updateDeviceToken *sql.Stmt
+	updateUser        *sql.Stmt
+	upsertUser        *sql.Stmt
 
 	nowFunc func() time.Time
 }
 
 func New(db *sql.DB) (*Storage, error) {
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at FROM users WHERE id = $1
+		SELECT id, nickname, color, created_at, device_token FROM users WHERE id = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
+	}
+
+	updateDeviceToken, err := db.Prepare(`
+		UPDATE users SET device_token = $1 WHERE id = $2
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
 	}
 
 	updateUser, err := db.Prepare(`
@@ -48,9 +56,10 @@ func New(db *sql.DB) (*Storage, error) {
 	return &Storage{
 		db: db,
 
-		getUserById: getUserById,
-		updateUser:  updateUser,
-		upsertUser:  upsertUser,
+		getUserById:       getUserById,
+		updateDeviceToken: updateDeviceToken,
+		updateUser:        updateUser,
+		upsertUser:        upsertUser,
 
 		nowFunc: time.Now,
 	}, nil
@@ -61,7 +70,7 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 	var colorStr string
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
-		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt)
+		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt, &user.DeviceToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -71,6 +80,17 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 
 	user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
 	return &user, nil
+}
+
+func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error {
+	_, err := s.updateDeviceToken.ExecContext(ctx, deviceToken, userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("failed to update device token: %w", err)
+	}
+	return nil
 }
 
 func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {

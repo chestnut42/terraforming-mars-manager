@@ -16,6 +16,7 @@ import (
 
 type Storage interface {
 	GetUserById(ctx context.Context, userId string) (*storage.User, error)
+	UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error
 	UpdateUser(ctx context.Context, user *storage.User) (*storage.User, error)
 	UpsertUser(ctx context.Context, user *storage.User) error
 }
@@ -101,7 +102,18 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 }
 
 func (s *Service) UpdateDeviceToken(ctx context.Context, req *api.UpdateDeviceToken_Request) (*api.UpdateDeviceToken_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	user, ok := auth.UserFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "user not found")
+	}
+
+	if err := s.storage.UpdateDeviceToken(ctx, user.Id, req.GetDeviceToken()); err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &api.UpdateDeviceToken_Response{}, nil
 }
 
 func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (*api.SearchUser_Response, error) {

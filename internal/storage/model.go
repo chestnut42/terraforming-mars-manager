@@ -7,8 +7,9 @@ import (
 )
 
 type User struct {
-	UserId    string
-	Nickname  string
-	Color     api.PlayerColor
-	CreatedAt time.Time
+	UserId      string
+	Nickname    string
+	Color       api.PlayerColor
+	CreatedAt   time.Time
+	DeviceToken []byte
 }

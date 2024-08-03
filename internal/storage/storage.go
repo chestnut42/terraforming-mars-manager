@@ -14,6 +14,7 @@ type Storage struct {
 	db *sql.DB
 
 	getUserById       *sql.Stmt
+	searchUsers       *sql.Stmt
 	updateDeviceToken *sql.Stmt
 	updateUser        *sql.Stmt
 	upsertUser        *sql.Stmt
@@ -27,6 +28,13 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
+	}
+
+	searchUsers, err := db.Prepare(`
+		SELECT id, nickname, color, created_at FROM users WHERE nickname LIKE $1 ORDER BY nickname LIMIT $2
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare searchUsers: %w", err)
 	}
 
 	updateDeviceToken, err := db.Prepare(`
@@ -57,6 +65,7 @@ func New(db *sql.DB) (*Storage, error) {
 		db: db,
 
 		getUserById:       getUserById,
+		searchUsers:       searchUsers,
 		updateDeviceToken: updateDeviceToken,
 		updateUser:        updateUser,
 		upsertUser:        upsertUser,
@@ -80,6 +89,33 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 
 	user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
 	return &user, nil
+}
+
+func (s *Storage) SearchUsers(ctx context.Context, search string, limit int) ([]*User, error) {
+	rows, err := s.searchUsers.QueryContext(ctx, "%"+search+"%", limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]*User, 0, limit)
+	for rows.Next() {
+		user := User{}
+		var colorStr string
+
+		if err := rows.Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+		}
+		user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
+		users = append(users, &user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	if len(users) == 0 {
+		return nil, ErrNotFound
+	}
+	return users, nil
 }
 
 func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error {

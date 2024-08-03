@@ -16,6 +16,7 @@ import (
 
 type Storage interface {
 	GetUserById(ctx context.Context, userId string) (*storage.User, error)
+	SearchUsers(ctx context.Context, search string, limit int) ([]*storage.User, error)
 	UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error
 	UpdateUser(ctx context.Context, user *storage.User) (*storage.User, error)
 	UpsertUser(ctx context.Context, user *storage.User) error
@@ -117,5 +118,24 @@ func (s *Service) UpdateDeviceToken(ctx context.Context, req *api.UpdateDeviceTo
 }
 
 func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (*api.SearchUser_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	_, ok := auth.UserFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "user not found")
+	}
+
+	users, err := s.storage.SearchUsers(ctx, req.GetSearch(), 5)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	respUsers := make([]*api.User, len(users))
+	for i, user := range users {
+		respUsers[i] = userToAPI(user)
+	}
+	return &api.SearchUser_Response{
+		Users: respUsers,
+	}, nil
 }

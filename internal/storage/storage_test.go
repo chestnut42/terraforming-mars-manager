@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -127,6 +126,60 @@ func TestStorage_Users(t *testing.T) {
 
 		got, err := storage.GetUserById(ctx, "device token user")
 		assert.NilError(t, err)
-		assert.Assert(t, bytes.Equal(got.DeviceToken, []byte("device token")))
+		assert.DeepEqual(t, got.DeviceToken, []byte("device token"))
+	})
+
+	t.Run("SearchUsers", func(t *testing.T) {
+		for _, u := range []*User{
+			{UserId: "search 1", Nickname: "prefix middle nickname suffix"},
+			{UserId: "search 2", Nickname: "prefix middlenick surname"},
+			{UserId: "search 3", Nickname: "prefix nsuffix"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		t.Run("success - exact", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "prefix middle nickname suffix", 5)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2}})
+		})
+		t.Run("success - prefix", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "prefix ", 5)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{
+				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
+				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: now2},
+				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: now2},
+			})
+		})
+		t.Run("success - suffix", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "suffix", 5)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{
+				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
+				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: now2},
+			})
+		})
+		t.Run("success - middle", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "middle", 5)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{
+				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
+				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: now2},
+			})
+		})
+		t.Run("success - limit", func(t *testing.T) {
+			got, err := storage.SearchUsers(ctx, "prefix ", 2)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*User{
+				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: now2},
+				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: now2},
+			})
+		})
+		t.Run("error - not found", func(t *testing.T) {
+			_, err := storage.SearchUsers(ctx, "some invalid term", 5)
+			assert.ErrorIs(t, err, ErrNotFound)
+		})
 	})
 }

@@ -17,13 +17,10 @@ enum PlayerColor {
   BRONZE   = 8;
 }
 
-message UserSettings {
-  string nickname = 1;
-  PlayerColor color = 2;
-}
 
 message User {
   string id = 1;
-  UserSettings settings = 2;
-  google.protobuf.Timestamp created_at = 3;
+  string nickname = 2;
+  PlayerColor color = 3;
+  google.protobuf.Timestamp created_at = 4;
 }

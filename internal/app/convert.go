@@ -9,11 +9,9 @@ import (
 
 func userToAPI(user *storage.User) *api.User {
 	return &api.User{
-		Id: user.UserId,
-		Settings: &api.UserSettings{
-			Nickname: user.Nickname,
-			Color:    user.Color,
-		},
+		Id:        user.UserId,
+		Nickname:  user.Nickname,
+		Color:     user.Color,
 		CreatedAt: timestamppb.New(user.CreatedAt),
 	}
 }

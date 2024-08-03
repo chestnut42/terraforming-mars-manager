@@ -98,7 +98,8 @@ message GetMe {
 
 message UpdateMe {
   message Request {
-    UserSettings settings = 1;
+    string nickname = 1;
+    PlayerColor color = 2;
   }
 
   message Response {
@@ -120,6 +121,6 @@ message SearchUser {
   }
 
   message Response {
-    repeated UserSettings users = 1;
+    repeated User users = 1;
   }
 }

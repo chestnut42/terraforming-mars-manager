@@ -260,7 +260,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiUserSettings"
+            "$ref": "#/definitions/apiUser"
           }
         }
       }
@@ -280,8 +280,11 @@
     "apiUpdateMeRequest": {
       "type": "object",
       "properties": {
-        "settings": {
-          "$ref": "#/definitions/apiUserSettings"
+        "nickname": {
+          "type": "string"
+        },
+        "color": {
+          "$ref": "#/definitions/apiPlayerColor"
         }
       }
     },
@@ -299,23 +302,15 @@
         "id": {
           "type": "string"
         },
-        "settings": {
-          "$ref": "#/definitions/apiUserSettings"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "apiUserSettings": {
-      "type": "object",
-      "properties": {
         "nickname": {
           "type": "string"
         },
         "color": {
           "$ref": "#/definitions/apiPlayerColor"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

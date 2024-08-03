@@ -82,8 +82,8 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 
 	storageUser, err := s.storage.UpdateUser(ctx, &storage.User{
 		UserId:   user.Id,
-		Nickname: req.GetSettings().GetNickname(),
-		Color:    req.GetSettings().GetColor(),
+		Nickname: req.GetNickname(),
+		Color:    req.GetColor(),
 	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {

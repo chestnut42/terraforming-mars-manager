@@ -60,9 +60,10 @@ func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
 	}
 
 	if err := s.storage.CreateGame(ctx, &storage.Game{
-		GameId:    resp.Id,
-		ExpiresAt: resp.PurgeDate,
-		Players:   gamePlayers,
+		GameId:      resp.Id,
+		SpectatorId: resp.SpectatorId,
+		ExpiresAt:   resp.PurgeDate,
+		Players:     gamePlayers,
 	}); err != nil {
 		return fmt.Errorf("failed to store the game: %w", err)
 	}

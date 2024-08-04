@@ -24,9 +24,10 @@ type CreateGame struct {
 }
 
 type CreateGameResponse struct {
-	Id        string
-	Players   []NewPlayer
-	PurgeDate time.Time
+	Id          string
+	SpectatorId string
+	Players     []NewPlayer
+	PurgeDate   time.Time
 }
 
 func (s *Service) CreateGame(ctx context.Context, game CreateGame) (CreateGameResponse, error) {
@@ -64,9 +65,10 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGame) (CreateGameRe
 		}
 	}
 	return CreateGameResponse{
-		Id:        resp.Id,
-		Players:   respPlayers,
-		PurgeDate: time.UnixMilli(resp.PurgeDateMs),
+		Id:          resp.Id,
+		SpectatorId: resp.SpectatorId,
+		Players:     respPlayers,
+		PurgeDate:   time.UnixMilli(resp.PurgeDateMs),
 	}, nil
 }
 
@@ -210,6 +212,7 @@ type newPlayerResponse struct {
 
 type createGameResponse struct {
 	Id          string              `json:"id"`
+	SpectatorId string              `json:"spectatorId"`
 	Players     []newPlayerResponse `json:"players"`
 	PurgeDateMs int64               `json:"expectedPurgeTimeMs"`
 }

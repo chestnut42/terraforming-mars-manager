@@ -43,8 +43,8 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	insertGame, err := db.Prepare(`
-		INSERT INTO games (id, created_at, expires_at) 
-			VALUES ($1, $2, $3) 
+		INSERT INTO games (id, spectator_id, created_at, expires_at) 
+			VALUES ($1, $2, $3, $4) 
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare insertGame: %w", err)
@@ -217,7 +217,7 @@ func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
 		insertGame := tx.Stmt(s.insertGame)
 		insertPlayer := tx.Stmt(s.insertPlayer)
 
-		_, err := insertGame.ExecContext(ctx, &game.GameId, &now, &game.ExpiresAt)
+		_, err := insertGame.ExecContext(ctx, &game.GameId, &game.SpectatorId, &now, &game.ExpiresAt)
 		if err != nil {
 			return fmt.Errorf("failed to insert game: %w", err)
 		}

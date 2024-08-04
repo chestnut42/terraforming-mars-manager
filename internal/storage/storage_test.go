@@ -230,8 +230,9 @@ func TestStorage_Users(t *testing.T) {
 			{
 				name: "success",
 				game: Game{
-					GameId:    "g1",
-					ExpiresAt: gameNow.Add(time.Hour),
+					GameId:      "g1",
+					SpectatorId: "s1",
+					ExpiresAt:   gameNow.Add(time.Hour),
 					Players: []*Player{
 						{UserId: "game 1", PlayerId: "p1"},
 						{UserId: "game 2", PlayerId: "p2"},

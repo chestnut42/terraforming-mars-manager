@@ -15,10 +15,11 @@ type User struct {
 }
 
 type Game struct {
-	GameId    string
-	CreatedAt time.Time
-	ExpiresAt time.Time
-	Players   []*Player
+	GameId      string
+	SpectatorId string
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
+	Players     []*Player
 }
 
 type Player struct {

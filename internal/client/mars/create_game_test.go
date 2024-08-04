@@ -29,7 +29,8 @@ func TestDAO(t *testing.T) {
 	err = json.Unmarshal(testResponse, &cgResp)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, cgResp, createGameResponse{
-		Id: "g15db787ffe07",
+		Id:          "g15db787ffe07",
+		SpectatorId: "sceab4127915f",
 		Players: []newPlayerResponse{
 			{Id: "pd102a414e5e1", Name: "qweasd", Color: "orange"},
 			{Id: "pe3f6d5f8be7e", Name: "asdqwe", Color: "yellow"},

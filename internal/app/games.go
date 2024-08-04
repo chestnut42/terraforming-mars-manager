@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
@@ -52,7 +53,27 @@ func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (
 }
 
 func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api.GetGames_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	thisUser, ok := auth.UserFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "user not found")
+	}
+
+	games, err := s.game.GetUserGames(ctx, thisUser.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	apiGames := make([]*api.Game, len(games))
+	for i, g := range games {
+		apiGames[i] = &api.Game{
+			PlayUrl:      g.PlayURL,
+			CreatedAt:    timestamppb.New(g.CreatedAt),
+			ExpiresAt:    timestamppb.New(g.ExpiresAt),
+			PlayersCount: int32(g.PlayersCount),
+			AwaitsInput:  g.AwaitsInput,
+		}
+	}
+	return &api.GetGames_Response{Games: apiGames}, nil
 }
 
 func isUnique(str []string) bool {

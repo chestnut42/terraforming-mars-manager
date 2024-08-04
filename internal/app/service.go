@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/service/game"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
@@ -18,6 +19,7 @@ type Storage interface {
 
 type GameService interface {
 	CreateGame(ctx context.Context, players []*storage.User) error
+	GetUserGames(ctx context.Context, userId string) ([]*game.UserGame, error)
 }
 
 type Service struct {

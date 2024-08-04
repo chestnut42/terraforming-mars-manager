@@ -5,15 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
-
-	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 )
 
 type Storage struct {
 	db *sql.DB
 
+	getGamesByUserId  *sql.Stmt
 	getUserById       *sql.Stmt
 	getUserByNickname *sql.Stmt
 	insertGame        *sql.Stmt
@@ -27,6 +25,17 @@ type Storage struct {
 }
 
 func New(db *sql.DB) (*Storage, error) {
+	getGamesByUserId, err := db.Prepare(`
+		SELECT games.id, games.spectator_id, games.created_at, games.expires_at,
+		       game_players.user_id, game_players.player_id, game_players.color
+			FROM game_players INNER JOIN games ON game_players.game_id = games.id
+			WHERE game_players.user_id = $1 AND games.expires_at > $2
+			ORDER BY games.created_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getGamesByUserId: %w", err)
+	}
+
 	getUserById, err := db.Prepare(`
 		SELECT id, nickname, color, created_at, device_token FROM users WHERE id = $1
 	`)
@@ -92,6 +101,7 @@ func New(db *sql.DB) (*Storage, error) {
 	return &Storage{
 		db: db,
 
+		getGamesByUserId:  getGamesByUserId,
 		getUserById:       getUserById,
 		getUserByNickname: getUserByNickname,
 		insertGame:        insertGame,
@@ -219,16 +229,31 @@ func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
 	return nil
 }
 
-func (s *Storage) withTX(ctx context.Context, f func(ctx context.Context, tx *sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
+func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game, error) {
+	now := s.nowFunc()
+	rows, err := s.getGamesByUserId.QueryContext(ctx, userId, now)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to query getGamesByUserId: %w", err)
 	}
-	if err := f(ctx, tx); err != nil {
-		if err := tx.Rollback(); err != nil {
-			logx.Logger(ctx).Info("failed to rollback transaction", slog.Any("error", err))
+	defer rows.Close()
+
+	games := make([]*Game, 0)
+	for rows.Next() {
+		game := Game{}
+		player := Player{}
+
+		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt,
+			&player.UserId, &player.PlayerId, &player.Color); err != nil {
+			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
-		return err
+		game.Players = []*Player{&player}
+		games = append(games, &game)
 	}
-	return tx.Commit()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	if len(games) == 0 {
+		return nil, ErrNotFound
+	}
+	return games, nil
 }

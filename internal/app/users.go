@@ -110,7 +110,7 @@ func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (
 	users, err := s.storage.SearchUsers(ctx, req.GetSearch(), 5, thisUser.Id)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return nil, status.Error(codes.NotFound, err.Error())
+			return &api.SearchUser_Response{Users: make([]*api.User, 0)}, nil
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}

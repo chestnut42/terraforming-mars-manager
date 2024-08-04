@@ -306,4 +306,85 @@ func TestStorage_Users(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("GetGamesByUserId", func(t *testing.T) {
+		gameNow := time.Now().Truncate(time.Second)
+		storage.nowFunc = func() time.Time { return gameNow }
+		for _, u := range []*User{
+			{UserId: "game_by_user1", Nickname: "game by user 1"},
+			{UserId: "game_by_user2", Nickname: "game by user 2"},
+			{UserId: "game_by_user3", Nickname: "game by user 3"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		for _, g := range []*Game{
+			{
+				GameId:      "gbu1",
+				SpectatorId: "sbu1",
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
+					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
+				},
+			},
+			{
+				GameId:      "gbu2",
+				SpectatorId: "sbu2",
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user1", PlayerId: "p2_1", Color: ColorBlue},
+					{UserId: "game_by_user3", PlayerId: "p2_3", Color: ColorYellow},
+				},
+			},
+			{ // Expired game
+				GameId:      "gbu3",
+				SpectatorId: "sbu3",
+				ExpiresAt:   gameNow.Add(-time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user1", PlayerId: "p3_1", Color: ColorBlue},
+					{UserId: "game_by_user3", PlayerId: "p3_3", Color: ColorYellow},
+					{UserId: "game_by_user2", PlayerId: "p3_2", Color: ColorRed},
+				},
+			},
+			{
+				GameId:      "gbu4",
+				SpectatorId: "sbu4",
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user1", PlayerId: "p4_1", Color: ColorBlue},
+					{UserId: "game_by_user3", PlayerId: "p4_3", Color: ColorYellow},
+					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+				},
+			},
+		} {
+			err := storage.CreateGame(ctx, g)
+			assert.NilError(t, err)
+		}
+
+		got, err := storage.GetGamesByUserId(ctx, "game_by_user2")
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, []*Game{
+			{
+				GameId:      "gbu1",
+				SpectatorId: "sbu1",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+				},
+			},
+			{
+				GameId:      "gbu4",
+				SpectatorId: "sbu4",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+				},
+			},
+		})
+	})
 }

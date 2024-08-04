@@ -9,10 +9,13 @@ import (
 
 type Storage interface {
 	CreateGame(ctx context.Context, game *storage.Game) error
+	GetGamesByUserId(ctx context.Context, userId string) ([]*storage.Game, error)
 }
 
 type MarsClient interface {
-	CreateGame(ctx context.Context, game mars.CreateGame) (mars.CreateGameResponse, error)
+	CreateGame(ctx context.Context, game mars.CreateGameRequest) (mars.CreateGameResponse, error)
+	GetPlayerUrl(playerId string) string
+	WaitingFor(ctx context.Context, req mars.WaitingForRequest) (mars.WaitingForResponse, error)
 }
 
 type Service struct {

@@ -44,6 +44,7 @@ func main() {
 	docsSvc, err := docs.NewService()
 	checkError(err)
 	marsSvc, err := mars.NewService(cfg.GameURL.URL, httpClient)
+	checkError(err)
 	gameSvc := game.NewService(storageSvc, marsSvc)
 	appSvc := app.NewService(storageSvc, gameSvc)
 	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)

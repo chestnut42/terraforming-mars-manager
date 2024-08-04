@@ -18,7 +18,7 @@ type NewPlayer struct {
 	Color storage.Color
 }
 
-type CreateGame struct {
+type CreateGameRequest struct {
 	Players []NewPlayer
 }
 
@@ -29,7 +29,7 @@ type CreateGameResponse struct {
 	PurgeDate   time.Time
 }
 
-func (s *Service) CreateGame(ctx context.Context, game CreateGame) (CreateGameResponse, error) {
+func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (CreateGameResponse, error) {
 	req := defaultCreateGame()
 	req.Players = requestPlayers(game.Players)
 

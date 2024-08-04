@@ -18,7 +18,7 @@ func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
 			Color: p.Color,
 		}
 	}
-	resp, err := s.mars.CreateGame(ctx, mars.CreateGame{Players: reqPlayers})
+	resp, err := s.mars.CreateGame(ctx, mars.CreateGameRequest{Players: reqPlayers})
 	if err != nil {
 		return fmt.Errorf("failed to create mars client game: %w", err)
 	}

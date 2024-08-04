@@ -7,6 +7,9 @@
   "tags": [
     {
       "name": "Users"
+    },
+    {
+      "name": "Games"
     }
   ],
   "consumes": [
@@ -16,6 +19,47 @@
     "application/json"
   ],
   "paths": {
+    "/manager/api/v1/game": {
+      "post": {
+        "operationId": "Games_CreateGame",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCreateGameResponse"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCreateGameRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Games"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/manager/api/v1/login": {
       "post": {
         "operationId": "Users_Login",
@@ -211,6 +255,20 @@
     }
   },
   "definitions": {
+    "apiCreateGameRequest": {
+      "type": "object",
+      "properties": {
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiCreateGameResponse": {
+      "type": "object"
+    },
     "apiGetMeResponse": {
       "type": "object",
       "properties": {

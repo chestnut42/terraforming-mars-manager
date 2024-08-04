@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
@@ -14,6 +16,9 @@ type Storage struct {
 	db *sql.DB
 
 	getUserById       *sql.Stmt
+	getUserByNickname *sql.Stmt
+	insertGame        *sql.Stmt
+	insertPlayer      *sql.Stmt
 	searchUsers       *sql.Stmt
 	updateDeviceToken *sql.Stmt
 	updateUser        *sql.Stmt
@@ -28,6 +33,29 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
+	}
+
+	getUserByNickname, err := db.Prepare(`
+		SELECT id, nickname, color, created_at, device_token FROM users WHERE nickname = $1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getUsersByNicknames: %w", err)
+	}
+
+	insertGame, err := db.Prepare(`
+		INSERT INTO games (id, created_at, expires_at) 
+			VALUES ($1, $2, $3) 
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare insertGame: %w", err)
+	}
+
+	insertPlayer, err := db.Prepare(`
+		INSERT INTO game_players (game_id, user_id, player_id)
+			VALUES ($1, $2, $3)
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare insertPlayer: %w", err)
 	}
 
 	searchUsers, err := db.Prepare(`
@@ -47,7 +75,7 @@ func New(db *sql.DB) (*Storage, error) {
 
 	updateUser, err := db.Prepare(`
 		UPDATE users SET nickname = $1, color = $2 WHERE id = $3
-		RETURNING id, nickname, color, created_at
+			RETURNING id, nickname, color, created_at
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateUser: %w", err)
@@ -55,8 +83,8 @@ func New(db *sql.DB) (*Storage, error) {
 
 	upsertUser, err := db.Prepare(`
 		INSERT INTO users(id, nickname, color, created_at)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT(id) DO NOTHING
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT(id) DO NOTHING
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare upsertUser: %w", err)
@@ -66,6 +94,9 @@ func New(db *sql.DB) (*Storage, error) {
 		db: db,
 
 		getUserById:       getUserById,
+		getUserByNickname: getUserByNickname,
+		insertGame:        insertGame,
+		insertPlayer:      insertPlayer,
 		searchUsers:       searchUsers,
 		updateDeviceToken: updateDeviceToken,
 		updateUser:        updateUser,
@@ -80,6 +111,23 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 	var colorStr string
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
+		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt, &user.DeviceToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
+	return &user, nil
+}
+
+func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User, error) {
+	user := User{}
+	var colorStr string
+
+	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
 		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt, &user.DeviceToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -160,4 +208,42 @@ func (s *Storage) UpsertUser(ctx context.Context, user *User) error {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 	return nil
+}
+
+func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
+	now := s.nowFunc()
+
+	if err := s.withTX(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		insertGame := tx.Stmt(s.insertGame)
+		insertPlayer := tx.Stmt(s.insertPlayer)
+
+		_, err := insertGame.ExecContext(ctx, &game.GameId, &now, &game.ExpiresAt)
+		if err != nil {
+			return fmt.Errorf("failed to insert game: %w", err)
+		}
+		for _, p := range game.Players {
+			_, err := insertPlayer.ExecContext(ctx, &game.GameId, &p.UserId, &p.PlayerId)
+			if err != nil {
+				return fmt.Errorf("failed to insert player(%s): %w", p.UserId, err)
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to create game: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) withTX(ctx context.Context, f func(ctx context.Context, tx *sql.Tx) error) error {
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	if err := f(ctx, tx); err != nil {
+		if err := tx.Rollback(); err != nil {
+			logx.Logger(ctx).Info("failed to rollback transaction", slog.Any("error", err))
+		}
+		return err
+	}
+	return tx.Commit()
 }

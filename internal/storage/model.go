@@ -13,3 +13,15 @@ type User struct {
 	CreatedAt   time.Time
 	DeviceToken []byte
 }
+
+type Game struct {
+	GameId    string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Players   []*Player
+}
+
+type Player struct {
+	UserId   string
+	PlayerId string
+}

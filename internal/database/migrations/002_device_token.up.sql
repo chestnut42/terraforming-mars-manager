@@ -1,2 +1,2 @@
-ALTER TABLE users
+ALTER TABLE manager_users
     ADD COLUMN device_token BYTEA;

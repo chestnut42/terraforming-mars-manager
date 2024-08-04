@@ -26,32 +26,32 @@ type Storage struct {
 
 func New(db *sql.DB) (*Storage, error) {
 	getGamesByUserId, err := db.Prepare(`
-		SELECT games.id, games.spectator_id, games.created_at, games.expires_at,
-		       game_players.user_id, game_players.player_id, game_players.color
-			FROM game_players INNER JOIN games ON game_players.game_id = games.id
-			WHERE game_players.user_id = $1 AND games.expires_at > $2
-			ORDER BY games.created_at DESC
+		SELECT manager_games.id, manager_games.spectator_id, manager_games.created_at, manager_games.expires_at,
+		       manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color
+			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
+			WHERE manager_game_players.user_id = $1 AND manager_games.expires_at > $2
+			ORDER BY manager_games.created_at DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getGamesByUserId: %w", err)
 	}
 
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token FROM users WHERE id = $1
+		SELECT id, nickname, color, created_at, device_token FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token FROM users WHERE nickname = $1
+		SELECT id, nickname, color, created_at, device_token FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUsersByNicknames: %w", err)
 	}
 
 	insertGame, err := db.Prepare(`
-		INSERT INTO games (id, spectator_id, created_at, expires_at) 
+		INSERT INTO manager_games (id, spectator_id, created_at, expires_at) 
 			VALUES ($1, $2, $3, $4) 
 	`)
 	if err != nil {
@@ -59,7 +59,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	insertPlayer, err := db.Prepare(`
-		INSERT INTO game_players (game_id, user_id, player_id, color)
+		INSERT INTO manager_game_players (game_id, user_id, player_id, color)
 			VALUES ($1, $2, $3, $4)
 	`)
 	if err != nil {
@@ -67,7 +67,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	searchUsers, err := db.Prepare(`
-		SELECT id, nickname, color, created_at FROM users
+		SELECT id, nickname, color, created_at FROM manager_users
 			WHERE nickname LIKE $1 AND id != $2 ORDER BY nickname LIMIT $3
 	`)
 	if err != nil {
@@ -75,14 +75,14 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	updateDeviceToken, err := db.Prepare(`
-		UPDATE users SET device_token = $1 WHERE id = $2
+		UPDATE manager_users SET device_token = $1 WHERE id = $2
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
 	}
 
 	updateUser, err := db.Prepare(`
-		UPDATE users SET nickname = $1, color = $2 WHERE id = $3
+		UPDATE manager_users SET nickname = $1, color = $2 WHERE id = $3
 			RETURNING id, nickname, color, created_at
 	`)
 	if err != nil {
@@ -90,7 +90,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	upsertUser, err := db.Prepare(`
-		INSERT INTO users(id, nickname, color, created_at)
+		INSERT INTO manager_users (id, nickname, color, created_at)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT(id) DO NOTHING
 	`)

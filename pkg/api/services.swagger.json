@@ -303,6 +303,9 @@
     "apiGame": {
       "type": "object",
       "properties": {
+        "playUrl": {
+          "type": "string"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"

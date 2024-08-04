@@ -32,7 +32,7 @@ func MustNewConfig() Config {
 }
 
 type URL struct {
-	url.URL
+	*url.URL
 }
 
 func (u *URL) UnmarshalText(text []byte) error {
@@ -40,6 +40,6 @@ func (u *URL) UnmarshalText(text []byte) error {
 	if err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
 	}
-	u.URL = *newUrl
+	u.URL = newUrl
 	return nil
 }

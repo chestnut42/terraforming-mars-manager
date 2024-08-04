@@ -24,3 +24,11 @@ message User {
   PlayerColor color = 3;
   google.protobuf.Timestamp created_at = 4;
 }
+
+message Game {
+  string play_url = 1;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  int32 players_count = 4;
+  bool awaits_input = 5;
+}

@@ -260,3 +260,132 @@ var Users_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "pkg/api/services.proto",
 }
+
+const (
+	Games_CreateGame_FullMethodName = "/api.Games/CreateGame"
+	Games_GetGames_FullMethodName   = "/api.Games/GetGames"
+)
+
+// GamesClient is the client API for Games service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type GamesClient interface {
+	CreateGame(ctx context.Context, in *CreateGame_Request, opts ...grpc.CallOption) (*CreateGame_Response, error)
+	GetGames(ctx context.Context, in *GetGames_Request, opts ...grpc.CallOption) (*GetGames_Response, error)
+}
+
+type gamesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewGamesClient(cc grpc.ClientConnInterface) GamesClient {
+	return &gamesClient{cc}
+}
+
+func (c *gamesClient) CreateGame(ctx context.Context, in *CreateGame_Request, opts ...grpc.CallOption) (*CreateGame_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGame_Response)
+	err := c.cc.Invoke(ctx, Games_CreateGame_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamesClient) GetGames(ctx context.Context, in *GetGames_Request, opts ...grpc.CallOption) (*GetGames_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGames_Response)
+	err := c.cc.Invoke(ctx, Games_GetGames_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GamesServer is the server API for Games service.
+// All implementations must embed UnimplementedGamesServer
+// for forward compatibility
+type GamesServer interface {
+	CreateGame(context.Context, *CreateGame_Request) (*CreateGame_Response, error)
+	GetGames(context.Context, *GetGames_Request) (*GetGames_Response, error)
+	mustEmbedUnimplementedGamesServer()
+}
+
+// UnimplementedGamesServer must be embedded to have forward compatible implementations.
+type UnimplementedGamesServer struct {
+}
+
+func (UnimplementedGamesServer) CreateGame(context.Context, *CreateGame_Request) (*CreateGame_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
+}
+func (UnimplementedGamesServer) GetGames(context.Context, *GetGames_Request) (*GetGames_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGames not implemented")
+}
+func (UnimplementedGamesServer) mustEmbedUnimplementedGamesServer() {}
+
+// UnsafeGamesServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GamesServer will
+// result in compilation errors.
+type UnsafeGamesServer interface {
+	mustEmbedUnimplementedGamesServer()
+}
+
+func RegisterGamesServer(s grpc.ServiceRegistrar, srv GamesServer) {
+	s.RegisterService(&Games_ServiceDesc, srv)
+}
+
+func _Games_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGame_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamesServer).CreateGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Games_CreateGame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamesServer).CreateGame(ctx, req.(*CreateGame_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Games_GetGames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGames_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamesServer).GetGames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Games_GetGames_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamesServer).GetGames(ctx, req.(*GetGames_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Games_ServiceDesc is the grpc.ServiceDesc for Games service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Games_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.Games",
+	HandlerType: (*GamesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateGame",
+			Handler:    _Games_CreateGame_Handler,
+		},
+		{
+			MethodName: "GetGames",
+			Handler:    _Games_GetGames_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "pkg/api/services.proto",
+}

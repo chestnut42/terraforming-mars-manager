@@ -124,3 +124,44 @@ message SearchUser {
     repeated User users = 1;
   }
 }
+
+
+
+
+service Games {
+  rpc CreateGame(CreateGame.Request) returns (CreateGame.Response) {
+    option (google.api.http) = {
+      post: "/manager/api/v1/game"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: { security_requirement { key: "Bearer" }}
+    };
+  }
+  rpc GetGames(GetGames.Request) returns (GetGames.Response) {
+    option (google.api.http) = {
+      get: "/manager/api/v1/me/games"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: { security_requirement { key: "Bearer" }}
+    };
+  }
+}
+
+
+
+message CreateGame {
+  message Request {
+    repeated string players = 1;
+  }
+
+  message Response {}
+}
+
+message GetGames {
+  message Request {}
+
+  message Response {
+    repeated Game games = 1;
+  }
+}

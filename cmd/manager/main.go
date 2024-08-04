@@ -16,11 +16,13 @@ import (
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/signalx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/service/game"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
@@ -37,15 +39,21 @@ func main() {
 	checkError(err)
 	storageSvc, err := storage.New(db)
 	checkError(err)
+	httpClient := http.DefaultClient
 
 	docsSvc, err := docs.NewService()
 	checkError(err)
-	appSvc := app.NewService(storageSvc)
+	marsSvc, err := mars.NewService(cfg.GameURL.URL, httpClient)
+	checkError(err)
+	gameSvc := game.NewService(storageSvc, marsSvc)
+	appSvc := app.NewService(storageSvc, gameSvc)
 	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
 	checkError(err)
 
 	grpcMux := runtime.NewServeMux()
 	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)
+	checkError(err)
+	err = api.RegisterGamesHandlerServer(ctx, grpcMux, appSvc)
 	checkError(err)
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -61,7 +69,7 @@ func main() {
 		// Root Router
 		root := http.NewServeMux()
 		root.Handle("/manager/", appRouter)
-		root.Handle("/", httputil.NewSingleHostReverseProxy(&cfg.GameURL.URL))
+		root.Handle("/", httputil.NewSingleHostReverseProxy(cfg.GameURL.URL))
 
 		logger.Info("starting http server", slog.String("addr", cfg.Listen))
 		return httpx.ServeContext(ctx, root, cfg.Listen)

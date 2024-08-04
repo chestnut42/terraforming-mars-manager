@@ -7,16 +7,15 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
 type NewPlayer struct {
 	Id    string
 	Name  string
-	Color api.PlayerColor
+	Color storage.Color
 }
 
 type CreateGame struct {
@@ -61,7 +60,7 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGame) (CreateGameRe
 		respPlayers[i] = NewPlayer{
 			Id:    p.Id,
 			Name:  p.Name,
-			Color: api.PlayerColor(api.PlayerColor_value[strings.ToUpper(p.Color)]),
+			Color: storage.Color(p.Color),
 		}
 	}
 	return CreateGameResponse{
@@ -73,9 +72,9 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGame) (CreateGameRe
 }
 
 func requestPlayers(players []NewPlayer) []newPlayer {
-	leftColors := make(map[api.PlayerColor]struct{})
-	for c := range api.PlayerColor_name {
-		leftColors[api.PlayerColor(c)] = struct{}{}
+	leftColors := make(map[storage.Color]struct{})
+	for _, c := range allColors {
+		leftColors[c] = struct{}{}
 	}
 
 	conflictingPlayers := make([]int, 0)
@@ -89,10 +88,10 @@ func requestPlayers(players []NewPlayer) []newPlayer {
 	}
 
 	for _, conflictIdx := range conflictingPlayers {
-		for i := 0; i < len(api.PlayerColor_name); i++ {
-			if _, ok := leftColors[api.PlayerColor(i)]; ok {
-				players[conflictIdx].Color = api.PlayerColor(i)
-				delete(leftColors, api.PlayerColor(i))
+		for _, c := range allColors {
+			if _, ok := leftColors[c]; ok {
+				players[conflictIdx].Color = c
+				delete(leftColors, c)
 				break
 			}
 		}
@@ -102,7 +101,7 @@ func requestPlayers(players []NewPlayer) []newPlayer {
 	for i, p := range players {
 		newPlayers[i] = newPlayer{
 			Name:     p.Name,
-			Color:    strings.ToLower(api.PlayerColor_name[int32(p.Color)]),
+			Color:    string(p.Color),
 			Beginner: false,
 			Handicap: 0,
 			First:    false,
@@ -215,4 +214,16 @@ type createGameResponse struct {
 	SpectatorId string              `json:"spectatorId"`
 	Players     []newPlayerResponse `json:"players"`
 	PurgeDateMs int64               `json:"expectedPurgeTimeMs"`
+}
+
+var allColors = []storage.Color{
+	storage.ColorBlue,
+	storage.ColorRed,
+	storage.ColorYellow,
+	storage.ColorGreen,
+	storage.ColorBlack,
+	storage.ColorPurple,
+	storage.ColorOrange,
+	storage.ColorPink,
+	storage.ColorBronze,
 }

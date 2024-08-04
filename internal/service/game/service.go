@@ -51,6 +51,7 @@ func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
 				gamePlayers[i] = &storage.Player{
 					UserId:   u.UserId,
 					PlayerId: p.Id,
+					Color:    p.Color,
 				}
 			}
 		}

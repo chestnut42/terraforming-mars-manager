@@ -51,6 +51,10 @@ func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (
 	return &api.CreateGame_Response{}, nil
 }
 
+func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api.GetGames_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not implemented")
+}
+
 func isUnique(str []string) bool {
 	m := make(map[string]struct{})
 	for _, v := range str {

@@ -62,10 +62,14 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
+	col, err := fromAPIColor(req.GetColor())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	storageUser, err := s.storage.UpdateUser(ctx, &storage.User{
 		UserId:   user.Id,
 		Nickname: req.GetNickname(),
-		Color:    req.GetColor(),
+		Color:    col,
 	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {

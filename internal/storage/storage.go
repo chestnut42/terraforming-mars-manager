@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
-	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
 type Storage struct {
@@ -51,8 +50,8 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	insertPlayer, err := db.Prepare(`
-		INSERT INTO game_players (game_id, user_id, player_id)
-			VALUES ($1, $2, $3)
+		INSERT INTO game_players (game_id, user_id, player_id, color)
+			VALUES ($1, $2, $3, $4)
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare insertPlayer: %w", err)
@@ -108,35 +107,29 @@ func New(db *sql.DB) (*Storage, error) {
 
 func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error) {
 	user := User{}
-	var colorStr string
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
-		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt, &user.DeviceToken)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
-
-	user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
 	return &user, nil
 }
 
 func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User, error) {
 	user := User{}
-	var colorStr string
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
-		Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt, &user.DeviceToken)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
-
-	user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
 	return &user, nil
 }
 
@@ -150,12 +143,10 @@ func (s *Storage) SearchUsers(ctx context.Context, search string, limit int, exc
 	users := make([]*User, 0, limit)
 	for rows.Next() {
 		user := User{}
-		var colorStr string
 
-		if err := rows.Scan(&user.UserId, &user.Nickname, &colorStr, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
-		user.Color = api.PlayerColor(api.PlayerColor_value[colorStr])
 		users = append(users, &user)
 	}
 	if err := rows.Err(); err != nil {
@@ -179,13 +170,10 @@ func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceTo
 }
 
 func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
-	inColor := api.PlayerColor_name[int32(user.Color)]
-
 	updated := User{}
-	var outColor string
 
-	err := s.updateUser.QueryRowContext(ctx, user.Nickname, inColor, user.UserId).
-		Scan(&updated.UserId, &updated.Nickname, &outColor, &updated.CreatedAt)
+	err := s.updateUser.QueryRowContext(ctx, user.Nickname, user.Color, user.UserId).
+		Scan(&updated.UserId, &updated.Nickname, &updated.Color, &updated.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -195,16 +183,13 @@ func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 		}
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
-
-	updated.Color = api.PlayerColor(api.PlayerColor_value[outColor])
 	return &updated, nil
 }
 
 func (s *Storage) UpsertUser(ctx context.Context, user *User) error {
 	now := s.nowFunc()
-	colorStr := api.PlayerColor_name[int32(user.Color)]
 
-	if _, err := s.upsertUser.ExecContext(ctx, &user.UserId, &user.Nickname, &colorStr, &now); err != nil {
+	if _, err := s.upsertUser.ExecContext(ctx, &user.UserId, &user.Nickname, &user.Color, &now); err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 	return nil
@@ -222,7 +207,7 @@ func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
 			return fmt.Errorf("failed to insert game: %w", err)
 		}
 		for _, p := range game.Players {
-			_, err := insertPlayer.ExecContext(ctx, &game.GameId, &p.UserId, &p.PlayerId)
+			_, err := insertPlayer.ExecContext(ctx, &game.GameId, &p.UserId, &p.PlayerId, &p.Color)
 			if err != nil {
 				return fmt.Errorf("failed to insert player(%s): %w", p.UserId, err)
 			}

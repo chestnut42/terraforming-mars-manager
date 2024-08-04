@@ -212,6 +212,37 @@
         ]
       }
     },
+    "/manager/api/v1/me/games": {
+      "get": {
+        "operationId": "Games_GetGames",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetGamesResponse"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Games"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/manager/api/v1/search": {
       "post": {
         "operationId": "Users_SearchUser",
@@ -268,6 +299,38 @@
     },
     "apiCreateGameResponse": {
       "type": "object"
+    },
+    "apiGame": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "playersCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "awaitsInput": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiGetGamesResponse": {
+      "type": "object",
+      "properties": {
+        "games": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiGame"
+          }
+        }
+      }
     },
     "apiGetMeResponse": {
       "type": "object",

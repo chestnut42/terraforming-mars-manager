@@ -8,7 +8,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
 //go:embed test_create_game_request.json
@@ -48,9 +48,9 @@ func TestRequestPlayers(t *testing.T) {
 		{
 			name: "no conflicts",
 			in: []NewPlayer{
-				{Name: "name 1", Color: api.PlayerColor_GREEN},
-				{Name: "name 2", Color: api.PlayerColor_BLUE},
-				{Name: "name 3", Color: api.PlayerColor_BLACK},
+				{Name: "name 1", Color: storage.ColorGreen},
+				{Name: "name 2", Color: storage.ColorBlue},
+				{Name: "name 3", Color: storage.ColorBlack},
 			},
 			want: []newPlayer{
 				{Name: "name 1", Color: "green"},
@@ -61,11 +61,11 @@ func TestRequestPlayers(t *testing.T) {
 		{
 			name: "conflicts",
 			in: []NewPlayer{
-				{Name: "name 1", Color: api.PlayerColor_GREEN},
-				{Name: "name 2", Color: api.PlayerColor_BLUE},
-				{Name: "name 3", Color: api.PlayerColor_GREEN},
-				{Name: "name 4", Color: api.PlayerColor_RED},
-				{Name: "name 5", Color: api.PlayerColor_RED},
+				{Name: "name 1", Color: storage.ColorGreen},
+				{Name: "name 2", Color: storage.ColorBlue},
+				{Name: "name 3", Color: storage.ColorGreen},
+				{Name: "name 4", Color: storage.ColorRed},
+				{Name: "name 5", Color: storage.ColorRed},
 			},
 			want: []newPlayer{
 				{Name: "name 1", Color: "green"},

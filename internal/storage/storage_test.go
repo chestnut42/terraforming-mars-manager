@@ -8,7 +8,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
-	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
 func TestStorage_Users(t *testing.T) {
@@ -28,7 +27,7 @@ func TestStorage_Users(t *testing.T) {
 			err := storage.UpsertUser(ctx, &User{
 				UserId:   "test user id",
 				Nickname: "test user nickname",
-				Color:    api.PlayerColor_BRONZE,
+				Color:    ColorBronze,
 			})
 			assert.NilError(t, err)
 		})
@@ -36,11 +35,12 @@ func TestStorage_Users(t *testing.T) {
 		t.Run("GetUserById - success", func(t *testing.T) {
 			user, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
-			assert.Assert(t, user != nil)
-			assert.Assert(t, user.UserId == "test user id")
-			assert.Assert(t, user.Nickname == "test user nickname")
-			assert.Assert(t, user.Color == api.PlayerColor_BRONZE)
-			assert.Assert(t, user.CreatedAt == now)
+			assert.DeepEqual(t, user, &User{
+				UserId:    "test user id",
+				Nickname:  "test user nickname",
+				Color:     ColorBronze,
+				CreatedAt: now,
+			})
 		})
 
 		now2 := now.Add(time.Second)
@@ -49,17 +49,18 @@ func TestStorage_Users(t *testing.T) {
 			err := storage.UpsertUser(ctx, &User{
 				UserId:   "test user id",
 				Nickname: "test user nickname 2",
-				Color:    api.PlayerColor_ORANGE,
+				Color:    ColorOrange,
 			})
 			assert.NilError(t, err)
 
 			user, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
-			assert.Assert(t, user != nil)
-			assert.Assert(t, user.UserId == "test user id")
-			assert.Assert(t, user.Nickname == "test user nickname")
-			assert.Assert(t, user.Color == api.PlayerColor_BRONZE)
-			assert.Assert(t, user.CreatedAt == now)
+			assert.DeepEqual(t, user, &User{
+				UserId:    "test user id",
+				Nickname:  "test user nickname",
+				Color:     ColorBronze,
+				CreatedAt: now,
+			})
 		})
 
 		t.Run("GetUserById - not found", func(t *testing.T) {
@@ -68,23 +69,23 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateUser - success", func(t *testing.T) {
+			expected := &User{
+				UserId:    "test user id",
+				Nickname:  "new test nickname",
+				Color:     ColorGreen,
+				CreatedAt: now,
+			}
 			updated, err := storage.UpdateUser(ctx, &User{
 				UserId:   "test user id",
 				Nickname: "new test nickname",
-				Color:    api.PlayerColor_GREEN,
+				Color:    ColorGreen,
 			})
 			assert.NilError(t, err)
-			assert.Assert(t, updated.UserId == "test user id")
-			assert.Assert(t, updated.Nickname == "new test nickname")
-			assert.Assert(t, updated.Color == api.PlayerColor_GREEN)
-			assert.Assert(t, updated.CreatedAt == now)
+			assert.DeepEqual(t, updated, expected)
 
-			refetched, err := storage.GetUserById(ctx, "test user id")
+			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
-			assert.Assert(t, refetched.UserId == "test user id")
-			assert.Assert(t, refetched.Nickname == "new test nickname")
-			assert.Assert(t, refetched.Color == api.PlayerColor_GREEN)
-			assert.Assert(t, refetched.CreatedAt == now)
+			assert.DeepEqual(t, got, expected)
 		})
 
 		t.Run("UpdateUser - not found", func(t *testing.T) {
@@ -234,9 +235,9 @@ func TestStorage_Users(t *testing.T) {
 					SpectatorId: "s1",
 					ExpiresAt:   gameNow.Add(time.Hour),
 					Players: []*Player{
-						{UserId: "game 1", PlayerId: "p1"},
-						{UserId: "game 2", PlayerId: "p2"},
-						{UserId: "game 3", PlayerId: "p3"},
+						{UserId: "game 1", PlayerId: "p1", Color: ColorBlue},
+						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
+						{UserId: "game 3", PlayerId: "p3", Color: ColorYellow},
 					},
 				},
 			},
@@ -246,9 +247,9 @@ func TestStorage_Users(t *testing.T) {
 					GameId:    "g1",
 					ExpiresAt: gameNow.Add(time.Hour),
 					Players: []*Player{
-						{UserId: "game 1", PlayerId: "p4"},
-						{UserId: "game 2", PlayerId: "p5"},
-						{UserId: "game 3", PlayerId: "p6"},
+						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
+						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
+						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
 					},
 				},
 				wantErr: true,
@@ -259,9 +260,9 @@ func TestStorage_Users(t *testing.T) {
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
 					Players: []*Player{
-						{UserId: "game 1", PlayerId: "p4"},
-						{UserId: "game 2", PlayerId: "p2"},
-						{UserId: "game 3", PlayerId: "p6"},
+						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
+						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
+						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
 					},
 				},
 				wantErr: true,
@@ -272,9 +273,22 @@ func TestStorage_Users(t *testing.T) {
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
 					Players: []*Player{
-						{UserId: "game 1", PlayerId: "p4"},
-						{UserId: "game 4", PlayerId: "p5"},
-						{UserId: "game 3", PlayerId: "p6"},
+						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
+						{UserId: "game 4", PlayerId: "p5", Color: ColorRed},
+						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
+					},
+				},
+				wantErr: true,
+			},
+			{
+				name: "error - non unique color",
+				game: Game{
+					GameId:    "g2",
+					ExpiresAt: gameNow.Add(time.Hour),
+					Players: []*Player{
+						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
+						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
+						{UserId: "game 3", PlayerId: "p6", Color: ColorBlue},
 					},
 				},
 				wantErr: true,
@@ -284,7 +298,11 @@ func TestStorage_Users(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				err := storage.CreateGame(ctx, &tt.game)
-				assert.Assert(t, (err != nil) == tt.wantErr)
+				if tt.wantErr {
+					assert.Assert(t, err != nil)
+				} else {
+					assert.NilError(t, err)
+				}
 			})
 		}
 	})

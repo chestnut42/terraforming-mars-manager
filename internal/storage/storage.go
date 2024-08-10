@@ -11,6 +11,7 @@ import (
 type Storage struct {
 	db *sql.DB
 
+	getActiveUsers    *sql.Stmt
 	getGamesByUserId  *sql.Stmt
 	getUserById       *sql.Stmt
 	getUserByNickname *sql.Stmt
@@ -25,6 +26,15 @@ type Storage struct {
 }
 
 func New(db *sql.DB) (*Storage, error) {
+	getActiveUsers, err := db.Prepare(`
+		SELECT distinct manager_game_players.user_id
+			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
+			WHERE manager_games.expires_at > $1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getActiveUsers: %w", err)
+	}
+
 	getGamesByUserId, err := db.Prepare(`
 		SELECT manager_games.id, manager_games.spectator_id, manager_games.created_at, manager_games.expires_at,
 		       manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color
@@ -101,6 +111,7 @@ func New(db *sql.DB) (*Storage, error) {
 	return &Storage{
 		db: db,
 
+		getActiveUsers:    getActiveUsers,
 		getGamesByUserId:  getGamesByUserId,
 		getUserById:       getUserById,
 		getUserByNickname: getUserByNickname,
@@ -256,4 +267,27 @@ func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game,
 		return nil, ErrNotFound
 	}
 	return games, nil
+}
+
+func (s *Storage) GetActiveUsers(ctx context.Context, activityBuffer time.Duration) ([]string, error) {
+	expiration := s.nowFunc().Add(-activityBuffer)
+	rows, err := s.getActiveUsers.QueryContext(ctx, &expiration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
+	}
+	defer rows.Close()
+
+	activeUsers := make([]string, 0)
+	for rows.Next() {
+		var userid string
+
+		if err := rows.Scan(&userid); err != nil {
+			return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
+		}
+		activeUsers = append(activeUsers, userid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
+	}
+	return activeUsers, nil
 }

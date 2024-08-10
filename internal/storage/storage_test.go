@@ -387,4 +387,57 @@ func TestStorage_Users(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("GetActiveUsers", func(t *testing.T) {
+		gameNow := time.Now().Truncate(time.Second).Add(2 * time.Hour) // 2 Hours added to avoid querying other games
+		storage.nowFunc = func() time.Time { return gameNow }
+		for _, u := range []*User{
+			{UserId: "active_user1", Nickname: "active user 1"},
+			{UserId: "active_user2", Nickname: "active user 2"},
+			{UserId: "active_user3", Nickname: "active user 3"},
+			{UserId: "active_user4", Nickname: "active user 4"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		for _, g := range []*Game{
+			{
+				GameId:      "au1",
+				SpectatorId: "sau1",
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "active_user1", PlayerId: "aup1_1", Color: ColorBlue},
+					{UserId: "active_user2", PlayerId: "aup1_2", Color: ColorRed},
+				},
+			},
+			{ // Recently expired game
+				GameId:      "au2",
+				SpectatorId: "sau2",
+				ExpiresAt:   gameNow.Add(-time.Minute),
+				Players: []*Player{
+					{UserId: "active_user2", PlayerId: "aup2_2", Color: ColorBlue},
+					{UserId: "active_user3", PlayerId: "aup2_3", Color: ColorYellow},
+				},
+			},
+			{ // Expired game
+				GameId:      "au3",
+				SpectatorId: "sau3",
+				ExpiresAt:   gameNow.Add(-time.Hour),
+				Players: []*Player{
+					{UserId: "active_user3", PlayerId: "aup3_3", Color: ColorBlue},
+					{UserId: "active_user4", PlayerId: "aup3_4", Color: ColorYellow},
+				},
+			},
+		} {
+			err := storage.CreateGame(ctx, g)
+			assert.NilError(t, err)
+		}
+
+		got, err := storage.GetActiveUsers(ctx, 2*time.Minute)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, []string{
+			"active_user1", "active_user2", "active_user3",
+		})
+	})
 }

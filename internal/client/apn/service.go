@@ -3,6 +3,7 @@ package apn
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -16,6 +17,8 @@ const (
 )
 
 type Config struct {
+	BaseURL *url.URL
+	Topic   string
 	TeamId  string
 	KeyId   string
 	KeyData []byte
@@ -26,8 +29,12 @@ type Client interface {
 }
 
 type Service struct {
-	teamId string
-	key    jwk.Key
+	baseURL *url.URL
+	topic   string
+	teamId  string
+	key     jwk.Key
+
+	client Client
 
 	now       func() time.Time
 	l         sync.Mutex
@@ -35,7 +42,7 @@ type Service struct {
 	createdAt time.Time
 }
 
-func NewService(cfg Config) (*Service, error) {
+func NewService(cfg Config, client Client) (*Service, error) {
 	key, err := jwk.ParseKey(cfg.KeyData, jwk.WithPEM(true))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse key: %w", err)
@@ -48,8 +55,12 @@ func NewService(cfg Config) (*Service, error) {
 	}
 
 	return &Service{
-		teamId: cfg.TeamId,
-		key:    key,
+		baseURL: cfg.BaseURL,
+		topic:   cfg.Topic,
+		teamId:  cfg.TeamId,
+		key:     key,
+
+		client: client,
 	}, nil
 }
 
@@ -72,8 +83,7 @@ func (s *Service) getToken() (string, error) {
 
 	signed, err := jwt.Sign(token, jwt.WithKey(jwa.ES256, s.key))
 	if err != nil {
-		return "", fmt.
-			Errorf("failed to sign token: %w", err)
+		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 	s.token = string(signed)
 	return s.token, nil

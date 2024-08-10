@@ -97,6 +97,7 @@ proto: ./bin/include/google/api ./bin/include/google/protobuf ./bin/include/prot
 		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
 		--openapiv2_out=. \
 		./pkg/api/*.proto
+	goimports -w -local github.com/farawaygg .
 
 .PHONY: generate
 generate: ./bin/gowrap ./bin/minimock ./bin/goimports

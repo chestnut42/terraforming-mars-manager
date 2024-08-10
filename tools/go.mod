@@ -3,7 +3,7 @@ module tools
 go 1.22
 
 require (
-	github.com/gojuno/minimock/v3 v3.3.13
+	github.com/gojuno/minimock/v3 v3.3.14
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0
 	github.com/hexdigest/gowrap v1.3.10
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0

@@ -7,11 +7,18 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type APN struct {
+	TeamId  string `envconfig:"TEAM_ID"`
+	KeyId   string `envconfig:"KEY_ID"`
+	KeyFile string `envconfig:"KEY_FILE"`
+}
+
 type Config struct {
 	Listen      string `default:":8080"`
 	GameURL     URL    `envconfig:"game_url" default:"http://localhost:8090/"`
 	PostgresDSN string `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
 	AppleKeys   string `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
+	APN         APN
 }
 
 func NewConfig() (Config, error) {

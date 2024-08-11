@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -82,11 +83,7 @@ func (s *Service) Run(ctx context.Context) error {
 
 func (s *Service) scanUsers(ctx context.Context) error {
 	for {
-		users, err := s.storage.GetActiveUsers(ctx, s.cfg.ActivityBuffer)
-		if err != nil {
-			logx.Logger(ctx).Error("failed to get active users", slog.Any("error", err))
-		}
-
+		users := s.getUsersToProcess(ctx)
 		for _, u := range users {
 			s.users <- u
 		}
@@ -111,4 +108,15 @@ func (s *Service) worker(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (s *Service) getUsersToProcess(ctx context.Context) []string {
+	users, err := s.storage.GetActiveUsers(ctx, s.cfg.ActivityBuffer)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil
+		}
+		logx.Logger(ctx).Error("failed to get active users", slog.Any("error", err))
+	}
+	return users
 }

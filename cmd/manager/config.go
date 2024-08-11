@@ -3,22 +3,32 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
 
 type APN struct {
-	TeamId  string `envconfig:"TEAM_ID"`
-	KeyId   string `envconfig:"KEY_ID"`
-	KeyFile string `envconfig:"KEY_FILE"`
+	BaseURL  URL    `envconfig:"base_url" default:"https://api.sandbox.push.apple.com"`
+	TeamId   string `envconfig:"team_id"`
+	KeyId    string `envconfig:"key_id"`
+	KeyFile  string `envconfig:"key_file"`
+	BundleId string `envconfig:"bundle_id"`
+}
+
+type Notifications struct {
+	ActivityBuffer time.Duration `envconfig:"activity_buffer" default:"1h"`
+	ScanInterval   time.Duration `envconfig:"scan_interval" default:"5m"`
+	WorkersCount   int           `envconfig:"workers_count" default:"10"`
 }
 
 type Config struct {
-	Listen      string `default:":8080"`
-	GameURL     URL    `envconfig:"game_url" default:"http://localhost:8090/"`
-	PostgresDSN string `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
-	AppleKeys   string `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
-	APN         APN
+	Listen        string        `default:":8080"`
+	GameURL       URL           `envconfig:"game_url" default:"http://localhost:8090/"`
+	PostgresDSN   string        `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
+	AppleKeys     string        `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
+	APN           APN           `envconfig:"apn"`
+	Notifications Notifications `envconfig:"notify"`
 }
 
 func NewConfig() (Config, error) {

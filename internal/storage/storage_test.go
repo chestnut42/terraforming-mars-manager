@@ -391,6 +391,11 @@ func TestStorage_Users(t *testing.T) {
 	t.Run("GetActiveUsers", func(t *testing.T) {
 		gameNow := time.Now().Truncate(time.Second).Add(2 * time.Hour) // 2 Hours added to avoid querying other games
 		storage.nowFunc = func() time.Time { return gameNow }
+		buffer := 2 * time.Minute
+
+		_, err := storage.GetActiveUsers(ctx, buffer)
+		assert.ErrorIs(t, err, ErrNotFound)
+
 		for _, u := range []*User{
 			{UserId: "active_user1", Nickname: "active user 1"},
 			{UserId: "active_user2", Nickname: "active user 2"},
@@ -434,7 +439,7 @@ func TestStorage_Users(t *testing.T) {
 			assert.NilError(t, err)
 		}
 
-		got, err := storage.GetActiveUsers(ctx, 2*time.Minute)
+		got, err := storage.GetActiveUsers(ctx, buffer)
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, []string{
 			"active_user1", "active_user2", "active_user3",
@@ -451,8 +456,7 @@ func TestStorage_Users(t *testing.T) {
 			assert.NilError(t, err)
 		}
 
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		wait := make(chan struct{})
@@ -486,5 +490,116 @@ func TestStorage_Users(t *testing.T) {
 				return SentNotification{ActiveGames: 2}, nil
 			})
 		assert.NilError(t, err)
+	})
+
+	t.Run("GetActiveGames", func(t *testing.T) {
+		now := time.Now().Truncate(time.Second).Add(4 * time.Hour) // 4 Hours added to avoid querying other games
+		storage.nowFunc = func() time.Time { return now }
+
+		_, err := storage.GetActiveGames(ctx)
+		assert.ErrorIs(t, err, ErrNotFound)
+
+		for _, u := range []*User{
+			{UserId: "active_game_user1", Nickname: "active game user 1"},
+			{UserId: "active_game_user2", Nickname: "active game user 2"},
+			{UserId: "active_game_user3", Nickname: "active game user 3"},
+			{UserId: "active_game_user4", Nickname: "active game user 4"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		for _, g := range []*Game{
+			{
+				GameId:      "gag1",
+				SpectatorId: "sgag1",
+				ExpiresAt:   now.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "active_game_user1", PlayerId: "agagp1_1", Color: ColorBlue},
+					{UserId: "active_game_user2", PlayerId: "agagp1_2", Color: ColorRed},
+				},
+			},
+			{
+				GameId:      "gag2",
+				SpectatorId: "sgag2",
+				ExpiresAt:   now.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "active_game_user3", PlayerId: "agagp2_3", Color: ColorBlue},
+					{UserId: "active_game_user2", PlayerId: "agagp2_2", Color: ColorRed},
+				},
+			},
+			{ // Expired game
+				GameId:      "gag3",
+				SpectatorId: "sgag3",
+				ExpiresAt:   now.Add(-time.Minute),
+				Players: []*Player{
+					{UserId: "active_game_user1", PlayerId: "agagp3_1", Color: ColorBlue},
+					{UserId: "active_game_user4", PlayerId: "agagp3_4", Color: ColorRed},
+				},
+			},
+		} {
+			err := storage.CreateGame(ctx, g)
+			assert.NilError(t, err)
+		}
+
+		got, err := storage.GetActiveGames(ctx)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, []*Game{
+			{
+				GameId:      "gag1",
+				SpectatorId: "sgag1",
+				CreatedAt:   now,
+				ExpiresAt:   now.Add(time.Hour),
+			},
+			{
+				GameId:      "gag2",
+				SpectatorId: "sgag2",
+				CreatedAt:   now,
+				ExpiresAt:   now.Add(time.Hour),
+			},
+		})
+
+		t.Run("UpdateGameResults", func(t *testing.T) {
+			updateNow := now.Add(30 * time.Minute)
+			storage.nowFunc = func() time.Time { return updateNow }
+
+			// 3 players still have active games
+			u, err := storage.GetActiveUsers(ctx, 0)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user1", "active_game_user2", "active_game_user3",
+			})
+
+			err = storage.UpdateGameResults(ctx, "gag1", GameResults{Raw: map[string]any{
+				"some data": 42,
+			}})
+			assert.NilError(t, err)
+
+			got, err := storage.GetActiveGames(ctx)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, []*Game{
+				{
+					GameId:      "gag2",
+					SpectatorId: "sgag2",
+					CreatedAt:   now,
+					ExpiresAt:   now.Add(time.Hour),
+				},
+			})
+
+			// After 5 minutes 3 players have active games with the buffer of 10 minutes
+			updateNow = updateNow.Add(5 * time.Minute)
+			u, err = storage.GetActiveUsers(ctx, 10*time.Minute)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user1", "active_game_user2", "active_game_user3",
+			})
+
+			// Only 2 have games with a small buffer
+			u, err = storage.GetActiveUsers(ctx, time.Minute)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user2", "active_game_user3",
+			})
+		})
 	})
 }

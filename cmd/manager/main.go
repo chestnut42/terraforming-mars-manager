@@ -59,7 +59,9 @@ func main() {
 	}, httpClient)
 	checkError(err)
 
-	gameSvc := game.NewService(storageSvc, marsSvc)
+	gameSvc := game.NewService(game.Config{
+		ScanInterval: cfg.Games.ScanInterval,
+	}, storageSvc, marsSvc)
 	appSvc := app.NewService(storageSvc, gameSvc)
 	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
 	checkError(err)
@@ -96,6 +98,9 @@ func main() {
 	})
 	eg.Go(func() error {
 		return notifySvc.Run(ctx)
+	})
+	eg.Go(func() error {
+		return gameSvc.Run(ctx)
 	})
 	eg.Go(func() error {
 		return signalx.ListenContext(ctx, syscall.SIGTERM, syscall.SIGINT)

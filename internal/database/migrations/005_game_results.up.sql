@@ -1,0 +1,2 @@
+ALTER TABLE manager_games
+    ADD COLUMN results JSONB, ADD COLUMN  finished_at TIMESTAMP WITH TIME ZONE;

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
@@ -49,6 +50,10 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (Creat
 		return CreateGameResponse{}, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer httpResp.Body.Close()
+
+	if err := httpx.CheckResponse(httpResp); err != nil {
+		return CreateGameResponse{}, fmt.Errorf("invalid response: %w", err)
+	}
 
 	var resp createGameResponse
 	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {

@@ -11,6 +11,7 @@ import (
 type Storage struct {
 	db *sql.DB
 
+	getActiveGames    *sql.Stmt
 	getActiveUsers    *sql.Stmt
 	getGamesByUserId  *sql.Stmt
 	getUserById       *sql.Stmt
@@ -20,6 +21,7 @@ type Storage struct {
 	lockUser          *sql.Stmt
 	searchUsers       *sql.Stmt
 	updateDeviceToken *sql.Stmt
+	updateGameResults *sql.Stmt
 	updateLockedUser  *sql.Stmt
 	updateUser        *sql.Stmt
 	upsertUser        *sql.Stmt
@@ -28,10 +30,18 @@ type Storage struct {
 }
 
 func New(db *sql.DB) (*Storage, error) {
+	getActiveGames, err := db.Prepare(`
+		SELECT id, spectator_id, created_at, expires_at
+			FROM manager_games WHERE results is null and expires_at > $1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getActiveGames: %w", err)
+	}
+
 	getActiveUsers, err := db.Prepare(`
 		SELECT distinct manager_game_players.user_id
 			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
-			WHERE manager_games.expires_at > $1
+			WHERE manager_games.expires_at > $1 and coalesce(manager_games.finished_at, 'infinity') > $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getActiveUsers: %w", err)
@@ -101,6 +111,13 @@ func New(db *sql.DB) (*Storage, error) {
 		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
 	}
 
+	updateGameResults, err := db.Prepare(`
+		UPDATE manager_games SET results = $1, finished_at = $2 WHERE id = $3
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateGameResults: %w", err)
+	}
+
 	updateLockedUser, err := db.Prepare(`
 		UPDATE manager_users SET sent_notification = $1 
 			WHERE id = $2
@@ -129,6 +146,7 @@ func New(db *sql.DB) (*Storage, error) {
 	return &Storage{
 		db: db,
 
+		getActiveGames:    getActiveGames,
 		getActiveUsers:    getActiveUsers,
 		getGamesByUserId:  getGamesByUserId,
 		getUserById:       getUserById,
@@ -138,6 +156,7 @@ func New(db *sql.DB) (*Storage, error) {
 		lockUser:          lockUser,
 		searchUsers:       searchUsers,
 		updateDeviceToken: updateDeviceToken,
+		updateGameResults: updateGameResults,
 		updateLockedUser:  updateLockedUser,
 		updateUser:        updateUser,
 		upsertUser:        upsertUser,
@@ -309,6 +328,9 @@ func (s *Storage) GetActiveUsers(ctx context.Context, activityBuffer time.Durati
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
 	}
+	if len(activeUsers) == 0 {
+		return nil, ErrNotFound
+	}
 	return activeUsers, nil
 }
 
@@ -334,6 +356,39 @@ func (s *Storage) UpdateSentNotification(ctx context.Context, userId string, upd
 		return nil
 	}); err != nil {
 		return fmt.Errorf("failed to update sent notification: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
+	now := s.nowFunc()
+	rows, err := s.getActiveGames.QueryContext(ctx, &now)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
+	}
+	defer rows.Close()
+
+	games := make([]*Game, 0)
+	for rows.Next() {
+		game := Game{}
+		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt); err != nil {
+			return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
+		}
+		games = append(games, &game)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
+	}
+	if len(games) == 0 {
+		return nil, ErrNotFound
+	}
+	return games, nil
+}
+
+func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results GameResults) error {
+	now := s.nowFunc()
+	if _, err := s.updateGameResults.ExecContext(ctx, results, now, gameId); err != nil {
+		return fmt.Errorf("failed to update results: %w", err)
 	}
 	return nil
 }

@@ -56,6 +56,7 @@ func (sn *SentNotification) Value() (driver.Value, error) {
 
 func (sn *SentNotification) Scan(value interface{}) error {
 	if value == nil {
+		*sn = SentNotification{}
 		return nil
 	}
 
@@ -65,4 +66,26 @@ func (sn *SentNotification) Scan(value interface{}) error {
 	}
 
 	return json.Unmarshal(b, &sn)
+}
+
+type GameResults struct {
+	Raw map[string]any
+}
+
+func (r *GameResults) Value() (driver.Value, error) {
+	return json.Marshal(r.Raw)
+}
+
+func (r *GameResults) Scan(value interface{}) error {
+	if value == nil {
+		*r = GameResults{}
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &r.Raw)
 }

@@ -2,8 +2,6 @@ package mars
 
 import (
 	_ "embed"
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -30,9 +28,7 @@ func TestGetGameDAO(t *testing.T) {
 		},
 	})
 
-	rawData, err := json.MarshalIndent(resp.Raw, "", "  ")
+	got, err := GetGameResponseFromRaw(resp.Raw)
 	assert.NilError(t, err)
-	assert.Equal(t,
-		len(strings.TrimSpace(string(rawData))),
-		len(strings.TrimSpace(string(testGetGameResponse))))
+	assert.DeepEqual(t, got, resp)
 }

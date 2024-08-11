@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
@@ -36,6 +37,10 @@ func (s *Service) WaitingFor(ctx context.Context, req WaitingForRequest) (Waitin
 		return WaitingForResponse{}, fmt.Errorf("failed to send http request: %w", err)
 	}
 	defer httpResp.Body.Close()
+
+	if err := httpx.CheckResponse(httpResp); err != nil {
+		return WaitingForResponse{}, fmt.Errorf("invalid http response: %w", err)
+	}
 
 	var resp waitingForResponse
 	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {

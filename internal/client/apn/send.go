@@ -6,10 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
 )
 
 type Alert struct {
@@ -55,12 +56,8 @@ func (s *Service) SendNotification(ctx context.Context, device []byte, n Notific
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("failed to read response body: %w", err)
-		}
-		return fmt.Errorf("failed to send notification: status %d, body: %s", resp.StatusCode, body)
+	if err := httpx.CheckResponse(resp); err != nil {
+		return fmt.Errorf("failed to send notification: %w", err)
 	}
 	return nil
 }

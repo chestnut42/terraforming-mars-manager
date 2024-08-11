@@ -502,6 +502,8 @@ func TestStorage_Users(t *testing.T) {
 		for _, u := range []*User{
 			{UserId: "active_game_user1", Nickname: "active game user 1"},
 			{UserId: "active_game_user2", Nickname: "active game user 2"},
+			{UserId: "active_game_user3", Nickname: "active game user 3"},
+			{UserId: "active_game_user4", Nickname: "active game user 4"},
 		} {
 			err := storage.UpsertUser(ctx, u)
 			assert.NilError(t, err)
@@ -522,7 +524,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sgag2",
 				ExpiresAt:   now.Add(time.Hour),
 				Players: []*Player{
-					{UserId: "active_game_user1", PlayerId: "agagp2_1", Color: ColorBlue},
+					{UserId: "active_game_user3", PlayerId: "agagp2_3", Color: ColorBlue},
 					{UserId: "active_game_user2", PlayerId: "agagp2_2", Color: ColorRed},
 				},
 			},
@@ -532,7 +534,7 @@ func TestStorage_Users(t *testing.T) {
 				ExpiresAt:   now.Add(-time.Minute),
 				Players: []*Player{
 					{UserId: "active_game_user1", PlayerId: "agagp3_1", Color: ColorBlue},
-					{UserId: "active_game_user2", PlayerId: "agagp3_2", Color: ColorRed},
+					{UserId: "active_game_user4", PlayerId: "agagp3_4", Color: ColorRed},
 				},
 			},
 		} {
@@ -558,6 +560,16 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateGameResults", func(t *testing.T) {
+			updateNow := now.Add(30 * time.Minute)
+			storage.nowFunc = func() time.Time { return updateNow }
+
+			// 3 players still have active games
+			u, err := storage.GetActiveUsers(ctx, 0)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user1", "active_game_user2", "active_game_user3",
+			})
+
 			err = storage.UpdateGameResults(ctx, "gag1", GameResults{Raw: map[string]any{
 				"some data": 42,
 			}})
@@ -572,6 +584,21 @@ func TestStorage_Users(t *testing.T) {
 					CreatedAt:   now,
 					ExpiresAt:   now.Add(time.Hour),
 				},
+			})
+
+			// After 5 minutes 3 players have active games with the buffer of 10 minutes
+			updateNow = updateNow.Add(5 * time.Minute)
+			u, err = storage.GetActiveUsers(ctx, 10*time.Minute)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user1", "active_game_user2", "active_game_user3",
+			})
+
+			// Only 2 have games with a small buffer
+			u, err = storage.GetActiveUsers(ctx, time.Minute)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, u, []string{
+				"active_game_user2", "active_game_user3",
 			})
 		})
 	})

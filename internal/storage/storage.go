@@ -41,7 +41,7 @@ func New(db *sql.DB) (*Storage, error) {
 	getActiveUsers, err := db.Prepare(`
 		SELECT distinct manager_game_players.user_id
 			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
-			WHERE manager_games.expires_at > $1
+			WHERE manager_games.expires_at > $1 and coalesce(manager_games.finished_at, 'infinity') > $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getActiveUsers: %w", err)
@@ -112,7 +112,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	updateGameResults, err := db.Prepare(`
-		UPDATE manager_games SET results = $1 WHERE id = $2
+		UPDATE manager_games SET results = $1, finished_at = $2 WHERE id = $3
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateGameResults: %w", err)
@@ -386,7 +386,8 @@ func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
 }
 
 func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results GameResults) error {
-	if _, err := s.updateGameResults.ExecContext(ctx, results, gameId); err != nil {
+	now := s.nowFunc()
+	if _, err := s.updateGameResults.ExecContext(ctx, results, now, gameId); err != nil {
 		return fmt.Errorf("failed to update results: %w", err)
 	}
 	return nil

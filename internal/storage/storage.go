@@ -114,6 +114,9 @@ func New(db *sql.DB) (*Storage, error) {
 	updateGameResults, err := db.Prepare(`
 		UPDATE manager_games SET results = $1 WHERE id = $2
 	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateGameResults: %w", err)
+	}
 
 	updateLockedUser, err := db.Prepare(`
 		UPDATE manager_users SET sent_notification = $1 

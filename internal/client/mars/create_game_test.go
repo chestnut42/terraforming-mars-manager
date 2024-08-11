@@ -17,7 +17,7 @@ var testRequest []byte
 //go:embed test_create_game_response.json
 var testResponse []byte
 
-func TestDAO(t *testing.T) {
+func TestCreateGameDAO(t *testing.T) {
 	jd := json.NewDecoder(bytes.NewReader(testRequest))
 	jd.DisallowUnknownFields()
 

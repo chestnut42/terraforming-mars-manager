@@ -18,14 +18,14 @@ type UserGame struct {
 	AwaitsInput  bool
 }
 
-func (s *Service) GetUserGames(ctx context.Context, userId string) ([]*UserGame, error) {
-	games, err := s.storage.GetGamesByUserId(ctx, userId)
+func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGame, error) {
+	games, err := s.storage.GetGamesByUserId(inctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("get games from storage: %w", err)
 	}
 
 	awaitInputs := make([]bool, len(games))
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, ctx := errgroup.WithContext(inctx)
 	for idx, game := range games {
 		idx := idx
 		game := game
@@ -56,19 +56,34 @@ func (s *Service) GetUserGames(ctx context.Context, userId string) ([]*UserGame,
 	}
 
 	result := make([]*UserGame, len(games))
+	eg, ctx = errgroup.WithContext(inctx)
 	for idx, g := range games {
-		if len(g.Players) == 0 || g.Players[0].UserId != userId {
-			return nil, fmt.Errorf("unexpected players in the game")
-		}
-		thisPlayer := g.Players[0]
+		idx := idx
+		g := g
 
-		result[idx] = &UserGame{
-			PlayURL:      s.mars.GetPlayerUrl(thisPlayer.PlayerId),
-			CreatedAt:    g.CreatedAt,
-			ExpiresAt:    g.ExpiresAt,
-			PlayersCount: 0, // TODO: grab number of players somewhere
-			AwaitsInput:  awaitInputs[idx],
-		}
+		eg.Go(func() error {
+			if len(g.Players) == 0 || g.Players[0].UserId != userId {
+				return fmt.Errorf("unexpected players in the game")
+			}
+			thisPlayer := g.Players[0]
+
+			game, err := s.mars.GetGame(ctx, mars.GetGameRequest{SpectatorId: g.SpectatorId})
+			if err != nil {
+				return fmt.Errorf("get game from mars: %w", err)
+			}
+
+			result[idx] = &UserGame{
+				PlayURL:      s.mars.GetPlayerUrl(thisPlayer.PlayerId),
+				CreatedAt:    g.CreatedAt,
+				ExpiresAt:    g.ExpiresAt,
+				PlayersCount: len(game.Game.Players),
+				AwaitsInput:  awaitInputs[idx],
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 	return result, nil
 }

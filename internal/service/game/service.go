@@ -14,6 +14,7 @@ type Storage interface {
 
 type MarsClient interface {
 	CreateGame(ctx context.Context, game mars.CreateGameRequest) (mars.CreateGameResponse, error)
+	GetGame(ctx context.Context, req mars.GetGameRequest) (mars.GetGameResponse, error)
 	GetPlayerUrl(playerId string) string
 	WaitingFor(ctx context.Context, req mars.WaitingForRequest) (mars.WaitingForResponse, error)
 }

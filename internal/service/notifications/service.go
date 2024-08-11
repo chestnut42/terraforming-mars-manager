@@ -113,10 +113,10 @@ func (s *Service) worker(ctx context.Context) error {
 func (s *Service) getUsersToProcess(ctx context.Context) []string {
 	users, err := s.storage.GetActiveUsers(ctx, s.cfg.ActivityBuffer)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
-			return nil
+		if !errors.Is(err, storage.ErrNotFound) {
+			logx.Logger(ctx).Error("failed to get active users", slog.Any("error", err))
 		}
-		logx.Logger(ctx).Error("failed to get active users", slog.Any("error", err))
+		return nil
 	}
 	return users
 }

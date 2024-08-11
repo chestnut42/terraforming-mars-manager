@@ -22,6 +22,10 @@ type Notifications struct {
 	WorkersCount   int           `envconfig:"workers_count" default:"10"`
 }
 
+type Games struct {
+	ScanInterval time.Duration `envconfig:"scan_interval" default:"10m"`
+}
+
 type Config struct {
 	Listen        string        `default:":8080"`
 	GameURL       URL           `envconfig:"game_url" default:"http://localhost:8090/"`
@@ -29,6 +33,7 @@ type Config struct {
 	AppleKeys     string        `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
 	APN           APN           `envconfig:"apn"`
 	Notifications Notifications `envconfig:"notify"`
+	Games         Games         `envconfig:"games"`
 }
 
 func NewConfig() (Config, error) {

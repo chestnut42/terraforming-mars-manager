@@ -1,6 +1,10 @@
 package storage
 
 import (
+	"context"
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -38,4 +42,27 @@ type Player struct {
 	UserId   string
 	PlayerId string
 	Color    Color
+}
+
+type SentNotification struct {
+	ActiveGames int `json:"ag"`
+}
+
+type SentNotificationUpdater func(ctx context.Context, sn SentNotification) (SentNotification, error)
+
+func (sn *SentNotification) Value() (driver.Value, error) {
+	return json.Marshal(sn)
+}
+
+func (sn *SentNotification) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &sn)
 }

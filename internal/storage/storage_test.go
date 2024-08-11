@@ -440,4 +440,51 @@ func TestStorage_Users(t *testing.T) {
 			"active_user1", "active_user2", "active_user3",
 		})
 	})
+
+	t.Run("UpdateSentNotification", func(t *testing.T) {
+		now := time.Now().Truncate(time.Second)
+		storage.nowFunc = func() time.Time { return now }
+		for _, u := range []*User{
+			{UserId: "notification_user1", Nickname: "notification user 1"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		wait := make(chan struct{})
+		backgroundErr := make(chan error)
+		go func() {
+			select {
+			case <-wait:
+			case <-ctx.Done():
+				backgroundErr <- ctx.Err()
+				return
+			}
+			err := storage.UpdateSentNotification(ctx, "notification_user1",
+				func(ctx context.Context, sn SentNotification) (SentNotification, error) {
+					return SentNotification{ActiveGames: 3}, nil
+				})
+			backgroundErr <- err
+		}()
+
+		err := storage.UpdateSentNotification(ctx, "notification_user1",
+			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
+				wait <- struct{}{}
+				return SentNotification{ActiveGames: 2}, nil
+			})
+		assert.NilError(t, err)
+		err = <-backgroundErr
+		assert.NilError(t, err)
+
+		err = storage.UpdateSentNotification(ctx, "notification_user1",
+			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
+				assert.Equal(t, sn.ActiveGames, 3)
+				return SentNotification{ActiveGames: 2}, nil
+			})
+		assert.NilError(t, err)
+	})
 }

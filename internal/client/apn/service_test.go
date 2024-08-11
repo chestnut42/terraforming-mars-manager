@@ -17,7 +17,7 @@ func TestNewService(t *testing.T) {
 		TeamId:  "team id",
 		KeyId:   "key id",
 		KeyData: testKeyData,
-	})
+	}, nil)
 	assert.NilError(t, err)
 	assert.Assert(t, s.teamId == "team id")
 	assert.Assert(t, s.key != nil)

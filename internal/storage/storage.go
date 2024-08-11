@@ -17,8 +17,10 @@ type Storage struct {
 	getUserByNickname *sql.Stmt
 	insertGame        *sql.Stmt
 	insertPlayer      *sql.Stmt
+	lockUser          *sql.Stmt
 	searchUsers       *sql.Stmt
 	updateDeviceToken *sql.Stmt
+	updateLockedUser  *sql.Stmt
 	updateUser        *sql.Stmt
 	upsertUser        *sql.Stmt
 
@@ -76,6 +78,14 @@ func New(db *sql.DB) (*Storage, error) {
 		return nil, fmt.Errorf("failed to prepare insertPlayer: %w", err)
 	}
 
+	lockUser, err := db.Prepare(`
+		SELECT sent_notification FROM manager_users
+			WHERE id = $1 FOR UPDATE
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare lockUser: %w", err)
+	}
+
 	searchUsers, err := db.Prepare(`
 		SELECT id, nickname, color, created_at FROM manager_users
 			WHERE nickname LIKE $1 AND id != $2 ORDER BY nickname LIMIT $3
@@ -89,6 +99,14 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
+	}
+
+	updateLockedUser, err := db.Prepare(`
+		UPDATE manager_users SET sent_notification = $1 
+			WHERE id = $2
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateLockedUser: %w", err)
 	}
 
 	updateUser, err := db.Prepare(`
@@ -117,8 +135,10 @@ func New(db *sql.DB) (*Storage, error) {
 		getUserByNickname: getUserByNickname,
 		insertGame:        insertGame,
 		insertPlayer:      insertPlayer,
+		lockUser:          lockUser,
 		searchUsers:       searchUsers,
 		updateDeviceToken: updateDeviceToken,
+		updateLockedUser:  updateLockedUser,
 		updateUser:        updateUser,
 		upsertUser:        upsertUser,
 
@@ -220,8 +240,8 @@ func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
 	now := s.nowFunc()
 
 	if err := s.withTX(ctx, func(ctx context.Context, tx *sql.Tx) error {
-		insertGame := tx.Stmt(s.insertGame)
-		insertPlayer := tx.Stmt(s.insertPlayer)
+		insertGame := tx.StmtContext(ctx, s.insertGame)
+		insertPlayer := tx.StmtContext(ctx, s.insertPlayer)
 
 		_, err := insertGame.ExecContext(ctx, &game.GameId, &game.SpectatorId, &now, &game.ExpiresAt)
 		if err != nil {
@@ -290,4 +310,30 @@ func (s *Storage) GetActiveUsers(ctx context.Context, activityBuffer time.Durati
 		return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
 	}
 	return activeUsers, nil
+}
+
+func (s *Storage) UpdateSentNotification(ctx context.Context, userId string, updater SentNotificationUpdater) error {
+	if err := s.withTX(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		lockUser := tx.StmtContext(ctx, s.lockUser)
+		updateUser := tx.StmtContext(ctx, s.updateLockedUser)
+
+		var sn SentNotification
+		if err := lockUser.QueryRowContext(ctx, &userId).
+			Scan(&sn); err != nil {
+			return fmt.Errorf("failed to query lockUser: %w", err)
+		}
+
+		newSn, err := updater(ctx, sn)
+		if err != nil {
+			return fmt.Errorf("failed to call notification updater: %w", err)
+		}
+
+		if _, err := updateUser.ExecContext(ctx, &newSn, &userId); err != nil {
+			return fmt.Errorf("failed to update user: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to update sent notification: %w", err)
+	}
+	return nil
 }

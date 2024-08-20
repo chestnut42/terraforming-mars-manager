@@ -60,6 +60,9 @@ func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api
 
 	games, err := s.game.GetUserGames(ctx, thisUser.Id)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return &api.GetGames_Response{Games: []*api.Game{}}, nil
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

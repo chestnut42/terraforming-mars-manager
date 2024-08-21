@@ -43,7 +43,14 @@ func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (
 		}
 	}
 	if !hasThisUser {
-		return nil, status.Error(codes.InvalidArgument, "you can't create a game for somebody else")
+		u, err := s.storage.GetUserById(ctx, thisUser.Id)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		users = append(users, u)
+	}
+	if len(users) > 5 {
+		return nil, status.Errorf(codes.InvalidArgument, "too many players: %d", len(users))
 	}
 
 	if err := s.game.CreateGame(ctx, users); err != nil {

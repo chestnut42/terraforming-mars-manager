@@ -40,7 +40,7 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (Creat
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut,
-		s.baseURL.JoinPath("game").String(), bytes.NewReader(reqData))
+		s.cfg.BaseURL.JoinPath("game").String(), bytes.NewReader(reqData))
 	if err != nil {
 		return CreateGameResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}

@@ -6,8 +6,8 @@ import (
 )
 
 func (s *Service) GetPlayerUrl(playerId string) string {
-	//https://mars.blockthem.xyz/player?id=p643a7f4ae170
-	reqUrl := *s.baseURL
+	//https://terraforming-mars.herokuapp.com/player?id=p643a7f4ae170
+	reqUrl := *s.cfg.PublicBaseURL
 	reqUrl.Path = path.Join(reqUrl.Path, "player")
 	v := url.Values{}
 	v.Set("id", playerId)

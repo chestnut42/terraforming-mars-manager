@@ -21,7 +21,7 @@ type WaitingForResponse struct {
 }
 
 func (s *Service) WaitingFor(ctx context.Context, req WaitingForRequest) (WaitingForResponse, error) {
-	reqUrl := *s.baseURL
+	reqUrl := *s.cfg.BaseURL
 	reqUrl.Path = path.Join(reqUrl.Path, "api/waitingfor")
 	v := url.Values{}
 	v.Set("id", req.SpectatorId)

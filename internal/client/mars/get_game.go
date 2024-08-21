@@ -32,7 +32,7 @@ type GetGameResponse struct {
 }
 
 func (s *Service) GetGame(ctx context.Context, req GetGameRequest) (GetGameResponse, error) {
-	reqUrl := *s.baseURL
+	reqUrl := *s.cfg.BaseURL
 	reqUrl.Path = path.Join(reqUrl.Path, "api/spectator")
 	v := url.Values{}
 	v.Set("id", req.SpectatorId)

@@ -29,6 +29,7 @@ type Games struct {
 type Config struct {
 	Listen        string        `default:":8080"`
 	GameURL       URL           `envconfig:"game_url" default:"http://localhost:8090/"`
+	PublicGameURL URL           `envconfig:"public_game_url" default:"https://terraforming-mars.herokuapp.com"`
 	PostgresDSN   string        `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
 	AppleKeys     string        `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
 	APN           APN           `envconfig:"apn"`

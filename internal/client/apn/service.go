@@ -61,6 +61,7 @@ func NewService(cfg Config, client Client) (*Service, error) {
 		key:     key,
 
 		client: client,
+		now:    time.Now,
 	}, nil
 }
 

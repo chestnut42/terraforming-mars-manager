@@ -5,14 +5,19 @@ import (
 	"net/url"
 )
 
-type Service struct {
-	baseURL *url.URL
-	client  *http.Client
+type Config struct {
+	BaseURL       *url.URL
+	PublicBaseURL *url.URL
 }
 
-func NewService(baseURL *url.URL, client *http.Client) (*Service, error) {
+type Service struct {
+	cfg    Config
+	client *http.Client
+}
+
+func NewService(cfg Config, client *http.Client) (*Service, error) {
 	return &Service{
-		baseURL: baseURL,
-		client:  client,
+		cfg:    cfg,
+		client: client,
 	}, nil
 }

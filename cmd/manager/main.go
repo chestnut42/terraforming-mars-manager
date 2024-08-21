@@ -48,7 +48,10 @@ func main() {
 
 	docsSvc, err := docs.NewService()
 	checkError(err)
-	marsSvc, err := mars.NewService(cfg.GameURL.URL, httpClient)
+	marsSvc, err := mars.NewService(mars.Config{
+		BaseURL:       cfg.GameURL.URL,
+		PublicBaseURL: cfg.PublicGameURL.URL,
+	}, httpClient)
 	checkError(err)
 	apnSvc, err := apn.NewService(apn.Config{
 		BaseURL: cfg.APN.BaseURL.URL,

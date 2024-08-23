@@ -35,6 +35,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, c.APN.KeyId, "key id")
 	assert.Equal(t, c.APN.KeyFile, "key file")
 	assert.Equal(t, c.APN.BundleId, "bundle-id")
+	assert.Equal(t, c.APN.MaxTokenAge, 30*time.Minute)
 	assert.Equal(t, c.Notifications.ActivityBuffer, time.Hour)
 	assert.Equal(t, c.Notifications.ScanInterval, 42*time.Second)
 	assert.Equal(t, c.Notifications.WorkersCount, 10)

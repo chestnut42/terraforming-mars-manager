@@ -13,6 +13,7 @@ type Storage struct {
 
 	getActiveGames    *sql.Stmt
 	getActiveUsers    *sql.Stmt
+	getGameByPlayerId *sql.Stmt
 	getGamesByUserId  *sql.Stmt
 	getUserById       *sql.Stmt
 	getUserByNickname *sql.Stmt
@@ -45,6 +46,16 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getActiveUsers: %w", err)
+	}
+
+	getGameByPlayerId, err := db.Prepare(`
+		SELECT manager_games.id, manager_games.spectator_id, manager_games.created_at, manager_games.expires_at,
+		       manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color
+			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
+			WHERE manager_games.id = (SELECT game_id FROM manager_game_players WHERE player_id = $1)
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getGameByPlayerId: %w", err)
 	}
 
 	getGamesByUserId, err := db.Prepare(`
@@ -148,6 +159,7 @@ func New(db *sql.DB) (*Storage, error) {
 
 		getActiveGames:    getActiveGames,
 		getActiveUsers:    getActiveUsers,
+		getGameByPlayerId: getGameByPlayerId,
 		getGamesByUserId:  getGamesByUserId,
 		getUserById:       getUserById,
 		getUserByNickname: getUserByNickname,
@@ -306,6 +318,32 @@ func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game,
 		return nil, ErrNotFound
 	}
 	return games, nil
+}
+
+func (s *Storage) GetGameByPlayerId(ctx context.Context, playerId string) (*Game, error) {
+	rows, err := s.getGameByPlayerId.QueryContext(ctx, playerId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query getGamesByUserId: %w", err)
+	}
+	defer rows.Close()
+
+	var game Game
+	for rows.Next() {
+		player := Player{}
+
+		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt,
+			&player.UserId, &player.PlayerId, &player.Color); err != nil {
+			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+		}
+		game.Players = append(game.Players, &player)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	if len(game.Players) == 0 {
+		return nil, ErrNotFound
+	}
+	return &game, nil
 }
 
 func (s *Storage) GetActiveUsers(ctx context.Context, activityBuffer time.Duration) ([]string, error) {

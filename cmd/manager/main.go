@@ -15,6 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
+	"github.com/chestnut42/terraforming-mars-manager/internal/app/interceptor"
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/apn"
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
@@ -61,6 +62,7 @@ func main() {
 		KeyData: keyData,
 	}, httpClient)
 	checkError(err)
+	originProxy := httputil.NewSingleHostReverseProxy(cfg.GameURL.URL)
 
 	gameSvc := game.NewService(game.Config{
 		ScanInterval: cfg.Games.ScanInterval,
@@ -74,6 +76,7 @@ func main() {
 		ScanInterval:   cfg.Notifications.ScanInterval,
 		WorkersCount:   cfg.Notifications.WorkersCount,
 	}, storageSvc, gameSvc, apnSvc)
+	interceptorSvc := interceptor.NewService(originProxy, storageSvc, marsSvc, notifySvc)
 
 	grpcMux := runtime.NewServeMux()
 	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)
@@ -94,7 +97,10 @@ func main() {
 		// Root Router
 		root := http.NewServeMux()
 		root.Handle("/manager/", appRouter)
-		root.Handle("/", httputil.NewSingleHostReverseProxy(cfg.GameURL.URL))
+		root.Handle("/", originProxy)
+
+		// APIs to intercept
+		root.HandleFunc("POST /player/input", interceptorSvc.PlayerInputHandler)
 
 		logger.Info("starting http server", slog.String("addr", cfg.Listen))
 		return httpx.ServeContext(ctx, root, cfg.Listen)

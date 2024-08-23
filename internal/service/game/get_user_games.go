@@ -36,9 +36,9 @@ func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGam
 		thisPlayer := game.Players[0]
 
 		eg.Go(func() error {
-			wait, err := s.mars.WaitingFor(ctx, mars.WaitingForRequest{SpectatorId: game.SpectatorId})
+			wait, err := s.mars.WaitingFor(ctx, mars.WaitingForRequest{PlayerId: thisPlayer.PlayerId})
 			if err != nil {
-				return fmt.Errorf("waiting for spectator (%s): %w", game.SpectatorId, err)
+				return fmt.Errorf("waiting for (%s): %w", thisPlayer.PlayerId, err)
 			}
 
 			userIsWaited := false

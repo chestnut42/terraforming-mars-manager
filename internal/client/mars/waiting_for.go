@@ -13,7 +13,7 @@ import (
 )
 
 type WaitingForRequest struct {
-	SpectatorId string
+	PlayerId string
 }
 
 type WaitingForResponse struct {
@@ -24,7 +24,7 @@ func (s *Service) WaitingFor(ctx context.Context, req WaitingForRequest) (Waitin
 	reqUrl := *s.cfg.BaseURL
 	reqUrl.Path = path.Join(reqUrl.Path, "api/waitingfor")
 	v := url.Values{}
-	v.Set("id", req.SpectatorId)
+	v.Set("id", req.PlayerId)
 	reqUrl.RawQuery = v.Encode()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl.String(), nil)

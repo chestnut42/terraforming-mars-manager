@@ -386,6 +386,22 @@ func TestStorage_Users(t *testing.T) {
 				},
 			},
 		})
+
+		t.Run("GetGameByPlayerId", func(t *testing.T) {
+			got, err := storage.GetGameByPlayerId(ctx, "p1_3")
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, &Game{
+				GameId:      "gbu1",
+				SpectatorId: "sbu1",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []*Player{
+					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
+					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
+				},
+			})
+		})
 	})
 
 	t.Run("GetActiveUsers", func(t *testing.T) {

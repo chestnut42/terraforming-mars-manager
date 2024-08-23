@@ -70,14 +70,14 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token FROM manager_users WHERE id = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token FROM manager_users WHERE nickname = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUsersByNicknames: %w", err)
@@ -116,7 +116,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	updateDeviceToken, err := db.Prepare(`
-		UPDATE manager_users SET device_token = $1 WHERE id = $2
+		UPDATE manager_users SET device_token = $1, device_token_type = $2 WHERE id = $3
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
@@ -181,7 +181,7 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 	user := User{}
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
-		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken, &user.DeviceTokenType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -195,7 +195,7 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 	user := User{}
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
-		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken, &user.DeviceTokenType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -230,8 +230,8 @@ func (s *Storage) SearchUsers(ctx context.Context, search string, limit int, exc
 	return users, nil
 }
 
-func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error {
-	_, err := s.updateDeviceToken.ExecContext(ctx, deviceToken, userId)
+func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte, tokenType DeviceTokenType) error {
+	_, err := s.updateDeviceToken.ExecContext(ctx, deviceToken, tokenType, userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound

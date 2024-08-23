@@ -12,7 +12,7 @@ type Storage interface {
 	GetUserById(ctx context.Context, userId string) (*storage.User, error)
 	GetUserByNickname(ctx context.Context, nickname string) (*storage.User, error)
 	SearchUsers(ctx context.Context, search string, limit int, excludeUser string) ([]*storage.User, error)
-	UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte) error
+	UpdateDeviceToken(ctx context.Context, userId string, deviceToken []byte, tokenType storage.DeviceTokenType) error
 	UpdateUser(ctx context.Context, user *storage.User) (*storage.User, error)
 	UpsertUser(ctx context.Context, user *storage.User) error
 }

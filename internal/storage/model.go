@@ -22,12 +22,20 @@ const (
 	ColorBronze Color = "bronze"
 )
 
+type DeviceTokenType string
+
+const (
+	DeviceTokenTypeSandbox    DeviceTokenType = "sdbx"
+	DeviceTokenTypeProduction DeviceTokenType = "prod"
+)
+
 type User struct {
-	UserId      string
-	Nickname    string
-	Color       Color
-	CreatedAt   time.Time
-	DeviceToken []byte
+	UserId          string
+	Nickname        string
+	Color           Color
+	CreatedAt       time.Time
+	DeviceToken     []byte
+	DeviceTokenType DeviceTokenType
 }
 
 type Game struct {

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -27,6 +28,10 @@ type Notification struct {
 
 type fullNotification struct {
 	Aps Notification `json:"aps"`
+}
+
+type errorResponse struct {
+	Reason string `json:"reason"`
 }
 
 func (s *Service) SendNotification(ctx context.Context, device []byte, n Notification) error {
@@ -55,6 +60,21 @@ func (s *Service) SendNotification(ctx context.Context, device []byte, n Notific
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadRequest {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		var errResp errorResponse
+		if err := json.Unmarshal(body, &errResp); err != nil {
+			return fmt.Errorf("failed to unmarshal response body(%s): %w", string(body), err)
+		}
+		if errResp.Reason == "BadDeviceToken" {
+			return ErrBadDeviceToken
+		}
+		return fmt.Errorf("failed to send notification: %s", errResp.Reason)
+	}
 
 	if err := httpx.CheckResponse(resp); err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)

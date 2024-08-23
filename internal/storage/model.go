@@ -22,12 +22,20 @@ const (
 	ColorBronze Color = "bronze"
 )
 
+type DeviceTokenType string
+
+const (
+	DeviceTokenTypeSandbox    DeviceTokenType = "sdbx"
+	DeviceTokenTypeProduction DeviceTokenType = "prod"
+)
+
 type User struct {
-	UserId      string
-	Nickname    string
-	Color       Color
-	CreatedAt   time.Time
-	DeviceToken []byte
+	UserId          string
+	Nickname        string
+	Color           Color
+	CreatedAt       time.Time
+	DeviceToken     []byte
+	DeviceTokenType DeviceTokenType
 }
 
 type Game struct {
@@ -48,7 +56,13 @@ type SentNotification struct {
 	ActiveGames int `json:"ag"`
 }
 
-type SentNotificationUpdater func(ctx context.Context, sn SentNotification) (SentNotification, error)
+type UserNotificationState struct {
+	DeviceToken      []byte
+	DeviceTokenType  DeviceTokenType
+	SentNotification SentNotification
+}
+
+type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
 
 func (sn *SentNotification) Value() (driver.Value, error) {
 	return json.Marshal(sn)

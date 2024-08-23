@@ -36,10 +36,11 @@ func TestStorage_Users(t *testing.T) {
 			user, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, user, &User{
-				UserId:    "test user id",
-				Nickname:  "test user nickname",
-				Color:     ColorBronze,
-				CreatedAt: now,
+				UserId:          "test user id",
+				Nickname:        "test user nickname",
+				Color:           ColorBronze,
+				CreatedAt:       now,
+				DeviceTokenType: DeviceTokenTypeProduction,
 			})
 		})
 
@@ -56,10 +57,11 @@ func TestStorage_Users(t *testing.T) {
 			user, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, user, &User{
-				UserId:    "test user id",
-				Nickname:  "test user nickname",
-				Color:     ColorBronze,
-				CreatedAt: now,
+				UserId:          "test user id",
+				Nickname:        "test user nickname",
+				Color:           ColorBronze,
+				CreatedAt:       now,
+				DeviceTokenType: DeviceTokenTypeProduction,
 			})
 		})
 
@@ -69,7 +71,7 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateUser - success", func(t *testing.T) {
-			expected := &User{
+			expectedAfterUpdate := &User{
 				UserId:    "test user id",
 				Nickname:  "new test nickname",
 				Color:     ColorGreen,
@@ -81,11 +83,18 @@ func TestStorage_Users(t *testing.T) {
 				Color:    ColorGreen,
 			})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, updated, expected)
+			assert.DeepEqual(t, expectedAfterUpdate, updated)
 
+			expectedAfterGet := &User{
+				UserId:          "test user id",
+				Nickname:        "new test nickname",
+				Color:           ColorGreen,
+				CreatedAt:       now,
+				DeviceTokenType: DeviceTokenTypeProduction,
+			}
 			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
-			assert.DeepEqual(t, got, expected)
+			assert.DeepEqual(t, expectedAfterGet, got)
 		})
 
 		t.Run("UpdateUser - not found", func(t *testing.T) {
@@ -120,9 +129,10 @@ func TestStorage_Users(t *testing.T) {
 			got, err := storage.GetUserByNickname(ctx, "second test user nickname")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, &User{
-				UserId:    "second test user id",
-				Nickname:  "second test user nickname",
-				CreatedAt: now2,
+				UserId:          "second test user id",
+				Nickname:        "second test user nickname",
+				CreatedAt:       now2,
+				DeviceTokenType: DeviceTokenTypeProduction,
 			})
 		})
 
@@ -138,12 +148,13 @@ func TestStorage_Users(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			err = storage.UpdateDeviceToken(ctx, "device token user", []byte("device token"))
+			err = storage.UpdateDeviceToken(ctx, "device token user", []byte("device token"), DeviceTokenTypeSandbox)
 			assert.NilError(t, err)
 
 			got, err := storage.GetUserById(ctx, "device token user")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got.DeviceToken, []byte("device token"))
+			assert.Equal(t, got.DeviceTokenType, DeviceTokenTypeSandbox)
 		})
 	})
 
@@ -485,25 +496,42 @@ func TestStorage_Users(t *testing.T) {
 				return
 			}
 			err := storage.UpdateSentNotification(ctx, "notification_user1",
-				func(ctx context.Context, sn SentNotification) (SentNotification, error) {
-					return SentNotification{ActiveGames: 3}, nil
+				func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
+					assert.DeepEqual(t, UserNotificationState{
+						DeviceToken:      []byte("some token"),
+						DeviceTokenType:  DeviceTokenTypeProduction,
+						SentNotification: SentNotification{ActiveGames: 2},
+					}, state)
+					return UserNotificationState{
+						DeviceToken:      []byte("some token"),
+						DeviceTokenType:  DeviceTokenTypeSandbox,
+						SentNotification: SentNotification{ActiveGames: 3},
+					}, nil
 				})
 			backgroundErr <- err
 		}()
 
 		err := storage.UpdateSentNotification(ctx, "notification_user1",
-			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
+			func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
 				wait <- struct{}{}
-				return SentNotification{ActiveGames: 2}, nil
+				return UserNotificationState{
+					DeviceToken:      []byte("some token"),
+					DeviceTokenType:  DeviceTokenTypeProduction,
+					SentNotification: SentNotification{ActiveGames: 2},
+				}, nil
 			})
 		assert.NilError(t, err)
 		err = <-backgroundErr
 		assert.NilError(t, err)
 
 		err = storage.UpdateSentNotification(ctx, "notification_user1",
-			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
-				assert.Equal(t, sn.ActiveGames, 3)
-				return SentNotification{ActiveGames: 2}, nil
+			func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
+				assert.DeepEqual(t, UserNotificationState{
+					DeviceToken:      []byte("some token"),
+					DeviceTokenType:  DeviceTokenTypeSandbox,
+					SentNotification: SentNotification{ActiveGames: 3},
+				}, state)
+				return state, nil
 			})
 		assert.NilError(t, err)
 	})

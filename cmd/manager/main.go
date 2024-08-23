@@ -55,19 +55,21 @@ func main() {
 	}, httpClient)
 	checkError(err)
 	sandboxApnSvc, err := apn.NewService(apn.Config{
-		BaseURL: cfg.APN.SandboxURL.URL,
-		Topic:   cfg.APN.BundleId,
-		TeamId:  cfg.APN.TeamId,
-		KeyId:   cfg.APN.KeyId,
-		KeyData: keyData,
+		BaseURL:     cfg.APN.SandboxURL.URL,
+		Topic:       cfg.APN.BundleId,
+		TeamId:      cfg.APN.TeamId,
+		KeyId:       cfg.APN.KeyId,
+		KeyData:     keyData,
+		MaxTokenAge: cfg.APN.MaxTokenAge,
 	}, httpClient)
 	checkError(err)
 	prodApnSvc, err := apn.NewService(apn.Config{
-		BaseURL: cfg.APN.ProdURL.URL,
-		Topic:   cfg.APN.BundleId,
-		TeamId:  cfg.APN.TeamId,
-		KeyId:   cfg.APN.KeyId,
-		KeyData: keyData,
+		BaseURL:     cfg.APN.ProdURL.URL,
+		Topic:       cfg.APN.BundleId,
+		TeamId:      cfg.APN.TeamId,
+		KeyId:       cfg.APN.KeyId,
+		KeyData:     keyData,
+		MaxTokenAge: cfg.APN.MaxTokenAge,
 	}, httpClient)
 	checkError(err)
 	originProxy := httputil.NewSingleHostReverseProxy(cfg.GameURL.URL)

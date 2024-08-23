@@ -9,12 +9,13 @@ import (
 )
 
 type APN struct {
-	SandboxURL URL    `envconfig:"sandbox_url" default:"https://api.sandbox.push.apple.com"`
-	ProdURL    URL    `envconfig:"prod_url" default:"https://api.push.apple.com"`
-	TeamId     string `envconfig:"team_id"`
-	KeyId      string `envconfig:"key_id"`
-	KeyFile    string `envconfig:"key_file"`
-	BundleId   string `envconfig:"bundle_id"`
+	SandboxURL  URL           `envconfig:"sandbox_url" default:"https://api.sandbox.push.apple.com"`
+	ProdURL     URL           `envconfig:"prod_url" default:"https://api.push.apple.com"`
+	TeamId      string        `envconfig:"team_id"`
+	KeyId       string        `envconfig:"key_id"`
+	KeyFile     string        `envconfig:"key_file"`
+	BundleId    string        `envconfig:"bundle_id"`
+	MaxTokenAge time.Duration `envconfig:"max_token_age" default:"30m"`
 }
 
 type Notifications struct {

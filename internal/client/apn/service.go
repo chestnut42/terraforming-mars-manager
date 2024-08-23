@@ -12,16 +12,13 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-const (
-	maxTokenAge = 30 * time.Second
-)
-
 type Config struct {
-	BaseURL *url.URL
-	Topic   string
-	TeamId  string
-	KeyId   string
-	KeyData []byte
+	BaseURL     *url.URL
+	Topic       string
+	TeamId      string
+	KeyId       string
+	KeyData     []byte
+	MaxTokenAge time.Duration
 }
 
 type Client interface {
@@ -33,6 +30,7 @@ type Service struct {
 	topic   string
 	teamId  string
 	key     jwk.Key
+	maxAge  time.Duration
 
 	client Client
 
@@ -59,6 +57,7 @@ func NewService(cfg Config, client Client) (*Service, error) {
 		topic:   cfg.Topic,
 		teamId:  cfg.TeamId,
 		key:     key,
+		maxAge:  cfg.MaxTokenAge,
 
 		client: client,
 		now:    time.Now,
@@ -70,7 +69,7 @@ func (s *Service) getToken() (string, error) {
 	defer s.l.Unlock()
 
 	now := s.now()
-	if s.token != "" && now.Sub(s.createdAt) < maxTokenAge {
+	if s.token != "" && now.Sub(s.createdAt) < s.maxAge {
 		return s.token, nil
 	}
 

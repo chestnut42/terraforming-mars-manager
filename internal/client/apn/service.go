@@ -86,5 +86,6 @@ func (s *Service) getToken() (string, error) {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 	s.token = string(signed)
+	s.createdAt = now
 	return s.token, nil
 }

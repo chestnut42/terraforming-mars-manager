@@ -496,25 +496,42 @@ func TestStorage_Users(t *testing.T) {
 				return
 			}
 			err := storage.UpdateSentNotification(ctx, "notification_user1",
-				func(ctx context.Context, sn SentNotification) (SentNotification, error) {
-					return SentNotification{ActiveGames: 3}, nil
+				func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
+					assert.DeepEqual(t, UserNotificationState{
+						DeviceToken:      []byte("some token"),
+						DeviceTokenType:  DeviceTokenTypeProduction,
+						SentNotification: SentNotification{ActiveGames: 2},
+					}, state)
+					return UserNotificationState{
+						DeviceToken:      []byte("some token"),
+						DeviceTokenType:  DeviceTokenTypeSandbox,
+						SentNotification: SentNotification{ActiveGames: 3},
+					}, nil
 				})
 			backgroundErr <- err
 		}()
 
 		err := storage.UpdateSentNotification(ctx, "notification_user1",
-			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
+			func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
 				wait <- struct{}{}
-				return SentNotification{ActiveGames: 2}, nil
+				return UserNotificationState{
+					DeviceToken:      []byte("some token"),
+					DeviceTokenType:  DeviceTokenTypeProduction,
+					SentNotification: SentNotification{ActiveGames: 2},
+				}, nil
 			})
 		assert.NilError(t, err)
 		err = <-backgroundErr
 		assert.NilError(t, err)
 
 		err = storage.UpdateSentNotification(ctx, "notification_user1",
-			func(ctx context.Context, sn SentNotification) (SentNotification, error) {
-				assert.Equal(t, sn.ActiveGames, 3)
-				return SentNotification{ActiveGames: 2}, nil
+			func(ctx context.Context, state UserNotificationState) (UserNotificationState, error) {
+				assert.DeepEqual(t, UserNotificationState{
+					DeviceToken:      []byte("some token"),
+					DeviceTokenType:  DeviceTokenTypeSandbox,
+					SentNotification: SentNotification{ActiveGames: 3},
+				}, state)
+				return state, nil
 			})
 		assert.NilError(t, err)
 	})

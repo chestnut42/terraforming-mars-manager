@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func (s *Service) processUser(ctx context.Context, userId string) error {
-	user, err := s.storage.GetUserById(ctx, userId)
+	user, err := s.deps.Storage.GetUserById(ctx, userId)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)
 	}
@@ -20,7 +21,7 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 		return nil
 	}
 
-	games, err := s.game.GetUserGames(ctx, userId)
+	games, err := s.deps.Game.GetUserGames(ctx, userId)
 	if err != nil {
 		return fmt.Errorf("get games: %w", err)
 	}
@@ -32,18 +33,27 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 		}
 	}
 
-	if err := s.storage.UpdateSentNotification(ctx, userId,
-		func(ctx context.Context, sn storage.SentNotification) (storage.SentNotification, error) {
-			if activeCount == sn.ActiveGames {
-				return sn, nil
+	if err := s.deps.Storage.UpdateSentNotification(ctx, userId,
+		func(ctx context.Context, state storage.UserNotificationState) (storage.UserNotificationState, error) {
+			if len(state.DeviceToken) == 0 {
+				logx.Logger(ctx).Debug("user locked with no device token", slog.String("uid", userId))
+				return state, nil
 			}
 
-			if activeCount > sn.ActiveGames {
+			if activeCount == state.SentNotification.ActiveGames {
+				return state, nil
+			}
+
+			// If active count decreased, just change the badge.
+			notification := apn.Notification{
+				Badge: activeCount,
+			}
+			if activeCount > state.SentNotification.ActiveGames {
 				gameText := "game"
 				if activeCount > 1 {
 					gameText = "games"
 				}
-				if err := s.notifier.SendNotification(ctx, user.DeviceToken, apn.Notification{
+				notification = apn.Notification{
 					Alert: apn.Alert{
 						Title:    "Mars awaits you!",
 						Subtitle: "",
@@ -51,20 +61,36 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 					},
 					Badge: activeCount,
 					Sound: "default",
-				}); err != nil {
-					return storage.SentNotification{}, fmt.Errorf("send notification up: %w", err)
 				}
 			}
-			if activeCount < sn.ActiveGames {
-				if err := s.notifier.SendNotification(ctx, user.DeviceToken, apn.Notification{
-					Badge: activeCount,
-				}); err != nil {
-					return storage.SentNotification{}, fmt.Errorf("send notification down: %w", err)
+
+			notifier := s.getNotifier(state.DeviceTokenType)
+			if err := notifier.SendNotification(ctx, state.DeviceToken, notification); err != nil {
+				if errors.Is(err, apn.ErrBadDeviceToken) {
+					state.DeviceTokenType = s.nextTokenType(state.DeviceTokenType)
+					return state, nil
 				}
+				return storage.UserNotificationState{}, fmt.Errorf("send notification: %w", err)
 			}
-			return storage.SentNotification{ActiveGames: activeCount}, nil
+
+			state.SentNotification = storage.SentNotification{ActiveGames: activeCount}
+			return state, nil
 		}); err != nil {
 		return fmt.Errorf("update sent notification: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) getNotifier(t storage.DeviceTokenType) Notifier {
+	if t == storage.DeviceTokenTypeSandbox {
+		return s.deps.SandboxNotifier
+	}
+	return s.deps.ProdNotifier
+}
+
+func (s *Service) nextTokenType(t storage.DeviceTokenType) storage.DeviceTokenType {
+	if t == storage.DeviceTokenTypeSandbox {
+		return storage.DeviceTokenTypeProduction
+	}
+	return storage.DeviceTokenTypeSandbox
 }

@@ -35,21 +35,24 @@ type Notifier interface {
 	SendNotification(ctx context.Context, device []byte, n apn.Notification) error
 }
 
+type Dependencies struct {
+	Storage         Storage
+	Game            GameService
+	SandboxNotifier Notifier
+	ProdNotifier    Notifier
+}
+
 type Service struct {
-	cfg      Config
-	storage  Storage
-	game     GameService
-	notifier Notifier
+	cfg  Config
+	deps Dependencies
 
 	users chan string
 }
 
-func NewService(cfg Config, storage Storage, game GameService, notifier Notifier) *Service {
+func NewService(cfg Config, deps Dependencies) *Service {
 	return &Service{
-		cfg:      cfg,
-		storage:  storage,
-		game:     game,
-		notifier: notifier,
+		cfg:  cfg,
+		deps: deps,
 
 		users: make(chan string),
 	}
@@ -111,7 +114,7 @@ func (s *Service) worker(ctx context.Context) error {
 }
 
 func (s *Service) getUsersToProcess(ctx context.Context) []string {
-	users, err := s.storage.GetActiveUsers(ctx, s.cfg.ActivityBuffer)
+	users, err := s.deps.Storage.GetActiveUsers(ctx, s.cfg.ActivityBuffer)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			logx.Logger(ctx).Error("failed to get active users", slog.Any("error", err))

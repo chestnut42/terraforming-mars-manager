@@ -100,7 +100,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	lockUser, err := db.Prepare(`
-		SELECT sent_notification FROM manager_users
+		SELECT device_token, device_token_type, sent_notification FROM manager_users
 			WHERE id = $1 FOR UPDATE
 	`)
 	if err != nil {
@@ -130,8 +130,8 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	updateLockedUser, err := db.Prepare(`
-		UPDATE manager_users SET sent_notification = $1 
-			WHERE id = $2
+		UPDATE manager_users SET device_token = $1, device_token_type = $2, sent_notification = $3 
+			WHERE id = $4
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateLockedUser: %w", err)
@@ -377,18 +377,20 @@ func (s *Storage) UpdateSentNotification(ctx context.Context, userId string, upd
 		lockUser := tx.StmtContext(ctx, s.lockUser)
 		updateUser := tx.StmtContext(ctx, s.updateLockedUser)
 
-		var sn SentNotification
-		if err := lockUser.QueryRowContext(ctx, &userId).
-			Scan(&sn); err != nil {
+		var state UserNotificationState
+		if err := lockUser.QueryRowContext(ctx, userId).
+			Scan(&state.DeviceToken, &state.DeviceTokenType, &state.SentNotification); err != nil {
 			return fmt.Errorf("failed to query lockUser: %w", err)
 		}
 
-		newSn, err := updater(ctx, sn)
+		newState, err := updater(ctx, state)
 		if err != nil {
 			return fmt.Errorf("failed to call notification updater: %w", err)
 		}
 
-		if _, err := updateUser.ExecContext(ctx, &newSn, &userId); err != nil {
+		if _, err := updateUser.ExecContext(ctx,
+			newState.DeviceToken, newState.DeviceTokenType, newState.SentNotification,
+			userId); err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
 		}
 		return nil

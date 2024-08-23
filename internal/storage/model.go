@@ -56,7 +56,13 @@ type SentNotification struct {
 	ActiveGames int `json:"ag"`
 }
 
-type SentNotificationUpdater func(ctx context.Context, sn SentNotification) (SentNotification, error)
+type UserNotificationState struct {
+	DeviceToken      []byte
+	DeviceTokenType  DeviceTokenType
+	SentNotification SentNotification
+}
+
+type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
 
 func (sn *SentNotification) Value() (driver.Value, error) {
 	return json.Marshal(sn)

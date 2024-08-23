@@ -54,8 +54,16 @@ func main() {
 		PublicBaseURL: cfg.PublicGameURL.URL,
 	}, httpClient)
 	checkError(err)
-	apnSvc, err := apn.NewService(apn.Config{
-		BaseURL: cfg.APN.BaseURL.URL,
+	sandboxApnSvc, err := apn.NewService(apn.Config{
+		BaseURL: cfg.APN.SandboxURL.URL,
+		Topic:   cfg.APN.BundleId,
+		TeamId:  cfg.APN.TeamId,
+		KeyId:   cfg.APN.KeyId,
+		KeyData: keyData,
+	}, httpClient)
+	checkError(err)
+	prodApnSvc, err := apn.NewService(apn.Config{
+		BaseURL: cfg.APN.ProdURL.URL,
 		Topic:   cfg.APN.BundleId,
 		TeamId:  cfg.APN.TeamId,
 		KeyId:   cfg.APN.KeyId,
@@ -75,7 +83,12 @@ func main() {
 		ActivityBuffer: cfg.Notifications.ActivityBuffer,
 		ScanInterval:   cfg.Notifications.ScanInterval,
 		WorkersCount:   cfg.Notifications.WorkersCount,
-	}, storageSvc, gameSvc, apnSvc)
+	}, notifications.Dependencies{
+		Storage:         storageSvc,
+		Game:            gameSvc,
+		SandboxNotifier: sandboxApnSvc,
+		ProdNotifier:    prodApnSvc,
+	})
 	interceptorSvc := interceptor.NewService(originProxy, storageSvc, marsSvc, notifySvc)
 
 	grpcMux := runtime.NewServeMux()

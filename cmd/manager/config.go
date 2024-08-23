@@ -9,11 +9,12 @@ import (
 )
 
 type APN struct {
-	BaseURL  URL    `envconfig:"base_url" default:"https://api.sandbox.push.apple.com"`
-	TeamId   string `envconfig:"team_id"`
-	KeyId    string `envconfig:"key_id"`
-	KeyFile  string `envconfig:"key_file"`
-	BundleId string `envconfig:"bundle_id"`
+	SandboxURL URL    `envconfig:"sandbox_url" default:"https://api.sandbox.push.apple.com"`
+	ProdURL    URL    `envconfig:"prod_url" default:"https://api.push.apple.com"`
+	TeamId     string `envconfig:"team_id"`
+	KeyId      string `envconfig:"key_id"`
+	KeyFile    string `envconfig:"key_file"`
+	BundleId   string `envconfig:"bundle_id"`
 }
 
 type Notifications struct {

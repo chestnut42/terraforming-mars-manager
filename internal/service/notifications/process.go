@@ -49,15 +49,15 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 				Badge: activeCount,
 			}
 			if activeCount > state.SentNotification.ActiveGames {
-				gameText := "game"
+				gameText := "game is"
 				if activeCount > 1 {
-					gameText = "games"
+					gameText = "games are"
 				}
 				notification = apn.Notification{
 					Alert: apn.Alert{
 						Title:    "Mars awaits you!",
 						Subtitle: "",
-						Body:     fmt.Sprintf("%d %s are awaiting for your decision", activeCount, gameText),
+						Body:     fmt.Sprintf("%d %s awaiting for your decision", activeCount, gameText),
 					},
 					Badge: activeCount,
 					Sound: "default",

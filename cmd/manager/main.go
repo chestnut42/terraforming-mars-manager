@@ -118,7 +118,7 @@ func main() {
 		root.HandleFunc("POST /player/input", interceptorSvc.PlayerInputHandler)
 
 		logger.Info("starting http server", slog.String("addr", cfg.Listen))
-		return httpx.ServeContext(ctx, root, cfg.Listen)
+		return httpx.ServeContext(ctx, httpx.WithRemoteAddress(root), cfg.Listen)
 	})
 	eg.Go(func() error {
 		return notifySvc.Run(ctx)

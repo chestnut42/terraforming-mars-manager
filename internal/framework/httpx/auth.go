@@ -45,6 +45,7 @@ func WithAuthorization(h http.Handler, bearer BearerAuth) http.Handler {
 		}
 
 		ctx = auth.ContextWithUser(ctx, user)
+		ctx = logx.AddArgs(ctx, slog.String("uid", user.Id))
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})

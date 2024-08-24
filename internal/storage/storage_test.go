@@ -28,6 +28,7 @@ func TestStorage_Users(t *testing.T) {
 				UserId:   "test user id",
 				Nickname: "test user nickname",
 				Color:    ColorBronze,
+				LastIp:   "last ip 1",
 			})
 			assert.NilError(t, err)
 		})
@@ -41,6 +42,7 @@ func TestStorage_Users(t *testing.T) {
 				Color:           ColorBronze,
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
+				LastIp:          "last ip 1",
 			})
 		})
 
@@ -51,6 +53,7 @@ func TestStorage_Users(t *testing.T) {
 				UserId:   "test user id",
 				Nickname: "test user nickname 2",
 				Color:    ColorOrange,
+				LastIp:   "last ip 2",
 			})
 			assert.NilError(t, err)
 
@@ -62,6 +65,7 @@ func TestStorage_Users(t *testing.T) {
 				Color:           ColorBronze,
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
+				LastIp:          "last ip 2",
 			})
 		})
 
@@ -91,6 +95,7 @@ func TestStorage_Users(t *testing.T) {
 				Color:           ColorGreen,
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
+				LastIp:          "last ip 2",
 			}
 			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)

@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/httpx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
@@ -20,10 +22,16 @@ func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_R
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 	newNickName := fmt.Sprintf("Player %X", rand.Int())
+	curIP, ok := httpx.RemoteAddrFromContext(ctx)
+	if !ok {
+		curIP = ""
+		logx.Logger(ctx).Warn("no IP in context")
+	}
 
 	if err := s.storage.UpsertUser(ctx, &storage.User{
 		UserId:   user.Id,
 		Nickname: newNickName,
+		LastIp:   curIP,
 	}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

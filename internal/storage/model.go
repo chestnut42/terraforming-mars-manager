@@ -36,6 +36,7 @@ type User struct {
 	CreatedAt       time.Time
 	DeviceToken     []byte
 	DeviceTokenType DeviceTokenType
+	LastIp          string
 }
 
 type Game struct {

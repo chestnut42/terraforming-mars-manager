@@ -17,7 +17,6 @@ func WithLogging(h http.Handler) http.Handler {
 			slog.String("path", r.URL.Path),
 			slog.Int("code", m.Code),
 			slog.Duration("dt", m.Duration),
-			slog.Int64("written", m.Written),
-		)
+			slog.Int64("written", m.Written))
 	})
 }

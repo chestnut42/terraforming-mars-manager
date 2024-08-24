@@ -18,3 +18,9 @@ func Logger(ctx context.Context) *slog.Logger {
 	}
 	return l
 }
+
+func AddArgs(ctx context.Context, args ...any) context.Context {
+	l := Logger(ctx)
+	l = l.With(args...)
+	return WithLogger(ctx, l)
+}

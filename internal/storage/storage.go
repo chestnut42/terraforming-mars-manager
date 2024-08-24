@@ -70,14 +70,14 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type FROM manager_users WHERE id = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type FROM manager_users WHERE nickname = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUsersByNicknames: %w", err)
@@ -146,9 +146,9 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	upsertUser, err := db.Prepare(`
-		INSERT INTO manager_users (id, nickname, color, created_at)
-			VALUES ($1, $2, $3, $4)
-			ON CONFLICT(id) DO NOTHING
+		INSERT INTO manager_users (id, nickname, color, created_at, last_ip)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT(id) DO UPDATE SET last_ip = $5
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare upsertUser: %w", err)
@@ -181,7 +181,8 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 	user := User{}
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
-		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken, &user.DeviceTokenType)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
+			&user.DeviceToken, &user.DeviceTokenType, &user.LastIp)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -195,7 +196,8 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 	user := User{}
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
-		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.DeviceToken, &user.DeviceTokenType)
+		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
+			&user.DeviceToken, &user.DeviceTokenType, &user.LastIp)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -261,7 +263,7 @@ func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 func (s *Storage) UpsertUser(ctx context.Context, user *User) error {
 	now := s.nowFunc()
 
-	if _, err := s.upsertUser.ExecContext(ctx, &user.UserId, &user.Nickname, &user.Color, &now); err != nil {
+	if _, err := s.upsertUser.ExecContext(ctx, &user.UserId, &user.Nickname, &user.Color, &now, &user.LastIp); err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 	return nil

@@ -69,6 +69,31 @@ func TestStorage_Users(t *testing.T) {
 			})
 		})
 
+		t.Run("GetUserById - no IP", func(t *testing.T) {
+			err := storage.UpsertUser(ctx, &User{
+				UserId:   "test get user no ip id",
+				Nickname: "test get user no ip nickname",
+				Color:    ColorBronze,
+			})
+			assert.NilError(t, err)
+
+			expected := &User{
+				UserId:          "test get user no ip id",
+				Nickname:        "test get user no ip nickname",
+				Color:           ColorBronze,
+				CreatedAt:       now2,
+				DeviceTokenType: DeviceTokenTypeProduction,
+			}
+
+			user, err := storage.GetUserById(ctx, "test get user no ip id")
+			assert.NilError(t, err)
+			assert.DeepEqual(t, expected, user)
+
+			user, err = storage.GetUserByNickname(ctx, "test get user no ip nickname")
+			assert.NilError(t, err)
+			assert.DeepEqual(t, expected, user)
+		})
+
 		t.Run("GetUserById - not found", func(t *testing.T) {
 			_, err := storage.GetUserById(ctx, "test user not found")
 			assert.ErrorIs(t, err, ErrNotFound)

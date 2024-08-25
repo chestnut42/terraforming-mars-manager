@@ -179,31 +179,35 @@ func New(db *sql.DB) (*Storage, error) {
 
 func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error) {
 	user := User{}
+	var lastIp sql.NullString
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &user.LastIp)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
+	user.LastIp = fromStrPtr(lastIp)
 	return &user, nil
 }
 
 func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User, error) {
 	user := User{}
+	var lastIp sql.NullString
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &user.LastIp)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
+	user.LastIp = fromStrPtr(lastIp)
 	return &user, nil
 }
 
@@ -262,8 +266,8 @@ func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 
 func (s *Storage) UpsertUser(ctx context.Context, user *User) error {
 	now := s.nowFunc()
-
-	if _, err := s.upsertUser.ExecContext(ctx, &user.UserId, &user.Nickname, &user.Color, &now, &user.LastIp); err != nil {
+	lastIp := toStrPtr(user.LastIp)
+	if _, err := s.upsertUser.ExecContext(ctx, user.UserId, user.Nickname, user.Color, now, lastIp); err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 	return nil

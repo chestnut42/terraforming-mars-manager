@@ -22,3 +22,20 @@ func (s *Storage) withTX(ctx context.Context, f func(ctx context.Context, tx *sq
 	}
 	return tx.Commit()
 }
+
+func toStrPtr(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
+}
+
+func fromStrPtr(s sql.NullString) string {
+	if s.Valid {
+		return s.String
+	}
+	return ""
+}

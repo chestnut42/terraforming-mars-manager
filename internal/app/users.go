@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,12 +17,14 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
+const newPlayerPrefix = "Player "
+
 func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_Response, error) {
 	user, ok := auth.UserFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
-	newNickName := fmt.Sprintf("Player %X", rand.Int())
+	newNickName := fmt.Sprintf("%s%X", newPlayerPrefix, rand.Int())
 	curIP, ok := httpx.RemoteAddrFromContext(ctx)
 	if !ok {
 		curIP = ""
@@ -115,7 +118,22 @@ func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
-	users, err := s.storage.SearchUsers(ctx, req.GetSearch(), 5, thisUser.Id)
+	thisStorageUser, err := s.storage.GetUserById(ctx, thisUser.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	limitingPrefix := ""
+	if strings.HasPrefix(thisStorageUser.Nickname, newPlayerPrefix) {
+		limitingPrefix = newPlayerPrefix
+	}
+
+	users, err := s.storage.SearchUsers(ctx, storage.Search{
+		Prefix:      limitingPrefix,
+		Search:      req.GetSearch(),
+		ExcludeUser: thisUser.Id,
+		Limit:       5,
+	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return &api.SearchUser_Response{Users: make([]*api.User, 0)}, nil

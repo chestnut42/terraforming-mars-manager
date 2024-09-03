@@ -109,7 +109,7 @@ func New(db *sql.DB) (*Storage, error) {
 
 	searchUsers, err := db.Prepare(`
 		SELECT id, nickname, color, created_at FROM manager_users
-			WHERE nickname LIKE $1 AND id != $2 ORDER BY nickname LIMIT $3
+			WHERE nickname LIKE $1 AND nickname LIKE $2 AND id != $3 ORDER BY nickname LIMIT $4
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare searchUsers: %w", err)
@@ -211,14 +211,21 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 	return &user, nil
 }
 
-func (s *Storage) SearchUsers(ctx context.Context, search string, limit int, excludeUser string) ([]*User, error) {
-	rows, err := s.searchUsers.QueryContext(ctx, "%"+search+"%", excludeUser, limit)
+type Search struct {
+	Prefix      string
+	Search      string
+	ExcludeUser string
+	Limit       int
+}
+
+func (s *Storage) SearchUsers(ctx context.Context, search Search) ([]*User, error) {
+	rows, err := s.searchUsers.QueryContext(ctx, search.Prefix+"%", "%"+search.Search+"%", search.ExcludeUser, search.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}
 	defer rows.Close()
 
-	users := make([]*User, 0, limit)
+	users := make([]*User, 0, search.Limit)
 	for rows.Next() {
 		user := User{}
 

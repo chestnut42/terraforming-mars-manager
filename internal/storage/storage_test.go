@@ -195,61 +195,98 @@ func TestStorage_Users(t *testing.T) {
 			{UserId: "search 1", Nickname: "prefix middle nickname suffix"},
 			{UserId: "search 2", Nickname: "prefix middlenick surname"},
 			{UserId: "search 3", Nickname: "prefix nsuffix"},
+			{UserId: "search 4", Nickname: "free middle nickname"},
 		} {
 			err := storage.UpsertUser(ctx, u)
 			assert.NilError(t, err)
 		}
 
-		t.Run("success - exact", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix middle nickname suffix", 5, "")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow}})
-		})
-		t.Run("success - prefix", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix ", 5, "")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{
-				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
-				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+		tests := []struct {
+			name    string
+			search  Search
+			want    []*User
+			wantErr error
+		}{
+			{
+				name:   "success - exact",
+				search: Search{Prefix: "pr", Search: "prefix middle nickname suffix", Limit: 5},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - prefix",
+				search: Search{Prefix: "pr", Search: "prefix", Limit: 5},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - suffix",
+				search: Search{Prefix: "pr", Search: "suffix", Limit: 5},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - middle",
+				search: Search{Prefix: "pr", Search: "middle", Limit: 5},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - middle and no limiting prefix",
+				search: Search{Prefix: "", Search: "middle", Limit: 5},
+				want: []*User{
+					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - limit",
+				search: Search{Prefix: "pr", Search: "prefix", Limit: 2},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:   "success - exclude",
+				search: Search{Prefix: "pr", Search: "prefix", Limit: 5, ExcludeUser: "search 2"},
+				want: []*User{
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+				},
+			},
+			{
+				name:    "error - term not found",
+				search:  Search{Prefix: "pr", Search: "some invalid term", Limit: 5},
+				wantErr: ErrNotFound,
+			},
+			{
+				name:    "error - limiting prefix not found",
+				search:  Search{Prefix: "suffix", Search: "middle", Limit: 5},
+				wantErr: ErrNotFound,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := storage.SearchUsers(ctx, tt.search)
+				if tt.wantErr != nil {
+					assert.ErrorIs(t, err, tt.wantErr)
+					return
+				}
+				assert.NilError(t, err)
+				assert.DeepEqual(t, tt.want, got)
 			})
-		})
-		t.Run("success - suffix", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "suffix", 5, "")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{
-				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
-			})
-		})
-		t.Run("success - middle", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "middle", 5, "")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{
-				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
-			})
-		})
-		t.Run("success - limit", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix ", 2, "")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{
-				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-				{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
-			})
-		})
-		t.Run("success - exclude", func(t *testing.T) {
-			got, err := storage.SearchUsers(ctx, "prefix ", 5, "search 2")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, []*User{
-				{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-				{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
-			})
-		})
-		t.Run("error - not found", func(t *testing.T) {
-			_, err := storage.SearchUsers(ctx, "some invalid term", 5, "")
-			assert.ErrorIs(t, err, ErrNotFound)
-		})
+		}
 	})
 
 	t.Run("CreateGame", func(t *testing.T) {

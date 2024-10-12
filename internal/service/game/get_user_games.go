@@ -16,6 +16,7 @@ type UserGame struct {
 	ExpiresAt    time.Time
 	PlayersCount int
 	AwaitsInput  bool
+	HasFinished  bool
 }
 
 func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGame, error) {
@@ -78,6 +79,7 @@ func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGam
 				ExpiresAt:    g.ExpiresAt,
 				PlayersCount: len(game.Game.Players),
 				AwaitsInput:  awaitInputs[idx],
+				HasFinished:  game.Game.HasFinished,
 			}
 			return nil
 		})

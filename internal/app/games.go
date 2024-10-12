@@ -75,12 +75,21 @@ func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api
 
 	apiGames := make([]*api.Game, len(games))
 	for i, g := range games {
+		st := api.GameStatus_GAME_STATUS_IN_PROGRESS
+		if g.AwaitsInput {
+			st = api.GameStatus_GAME_STATUS_AWAITS_INPUT
+		}
+		if g.HasFinished {
+			st = api.GameStatus_GAME_STATUS_FINISHED
+		}
+
 		apiGames[i] = &api.Game{
 			PlayUrl:      g.PlayURL,
 			CreatedAt:    timestamppb.New(g.CreatedAt),
 			ExpiresAt:    timestamppb.New(g.ExpiresAt),
 			PlayersCount: int32(g.PlayersCount),
 			AwaitsInput:  g.AwaitsInput,
+			Status:       st,
 		}
 	}
 	return &api.GetGames_Response{Games: apiGames}, nil

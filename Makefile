@@ -2,14 +2,18 @@ export GOBIN := $(PWD)/bin
 export PATH := $(GOBIN):$(PATH)
 
 GOLANGLINT_VERSION := 1.59.1
-PROTOC_VERSION := 27.2
+PROTOC_VERSION := 28.2
 GOOGLE_API_COMMIT := 0fa9ce880be5ea7c3027015849cd4fbfb04812c5
 GRPC_GATEWAY_VERSION := $(shell cat go.mod | grep github.com/grpc-ecosystem/grpc-gateway/v2 | cut -w -f 3 | cut -c 2-)
 
 ifeq ($(shell uname), Darwin)
 	OS_NAME=osx
 endif
-ARCH_NAME=$(shell uname -m)
+ifeq ($(shell uname -m), arm64)
+	ARCH_NAME=aarch_64
+else
+	ARCH_NAME=$(shell uname -m)
+endif
 
 
 .PHONY: default

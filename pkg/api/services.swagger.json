@@ -320,8 +320,20 @@
         },
         "awaitsInput": {
           "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/definitions/apiGameStatus"
         }
       }
+    },
+    "apiGameStatus": {
+      "type": "string",
+      "enum": [
+        "GAME_STATUS_IN_PROGRESS",
+        "GAME_STATUS_AWAITS_INPUT",
+        "GAME_STATUS_FINISHED"
+      ],
+      "default": "GAME_STATUS_IN_PROGRESS"
     },
     "apiGetGamesResponse": {
       "type": "object",

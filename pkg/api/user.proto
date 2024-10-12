@@ -17,6 +17,12 @@ enum PlayerColor {
   BRONZE   = 8;
 }
 
+enum GameStatus {
+  GAME_STATUS_IN_PROGRESS = 0;
+  GAME_STATUS_AWAITS_INPUT = 1;
+  GAME_STATUS_FINISHED = 2;
+}
+
 
 message User {
   string id = 1;
@@ -31,4 +37,5 @@ message Game {
   google.protobuf.Timestamp expires_at = 3;
   int32 players_count = 4;
   bool awaits_input = 5;
+  GameStatus status = 6;
 }

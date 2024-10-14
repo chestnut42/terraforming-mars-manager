@@ -45,6 +45,7 @@ type User struct {
 	DeviceTokenType DeviceTokenType
 	LastIp          string
 	Type            UserType
+	Elo             int64
 }
 
 type Game struct {

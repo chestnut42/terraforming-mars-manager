@@ -44,6 +44,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 1",
 				Type:            UserTypeBlank, // Upsert creates blank user
+				Elo:             1000,
 			})
 		})
 
@@ -68,6 +69,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			})
 		})
 
@@ -86,6 +88,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			}
 
 			user, err := storage.GetUserById(ctx, "test get user no ip id")
@@ -126,6 +129,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
 				Type:            UserTypeActive,
+				Elo:             1000,
 			}
 			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
@@ -151,6 +155,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 3",
 				Type:            UserTypeActive,
+				Elo:             1000,
 			})
 		})
 
@@ -191,6 +196,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			})
 		})
 
@@ -244,55 +250,55 @@ func TestStorage_Users(t *testing.T) {
 				name:   "success - exact",
 				search: SearchUsers{Search: "prefix middle nickname suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - prefix",
 				search: SearchUsers{Search: "prefix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - suffix",
 				search: SearchUsers{Search: "suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - middle",
 				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - middle and active type",
 				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeActive},
 				want: []*User{
-					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow},
+					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - limit",
 				search: SearchUsers{Search: "prefix", Limit: 2, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - exclude",
 				search: SearchUsers{Search: "prefix", Limit: 5, ExcludedUserId: "search 2", Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{

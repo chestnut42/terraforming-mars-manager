@@ -70,7 +70,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type 
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type, elo 
 		FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
@@ -78,7 +78,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type, elo
 		FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
@@ -110,7 +110,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	searchUsers, err := db.Prepare(`
-		SELECT id, nickname, color, created_at FROM manager_users
+		SELECT id, nickname, color, created_at, elo FROM manager_users
 			WHERE nickname LIKE $1 AND type = $2 AND id != $3 ORDER BY nickname LIMIT $4
 	`)
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type, &user.Elo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -202,7 +202,7 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type, &user.Elo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -231,7 +231,7 @@ func (s *Storage) SearchUsers(ctx context.Context, req SearchUsers) ([]*User, er
 	users := make([]*User, 0, req.Limit)
 	for rows.Next() {
 		user := User{}
-		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.Elo); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
 		users = append(users, &user)

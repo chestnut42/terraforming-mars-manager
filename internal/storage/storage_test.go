@@ -24,7 +24,7 @@ func TestStorage_Users(t *testing.T) {
 		now := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return now }
 		t.Run("UpsertUser - success", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "test user id",
 				Nickname: "test user nickname",
 				Color:    ColorBronze,
@@ -50,7 +50,7 @@ func TestStorage_Users(t *testing.T) {
 		now2 := now.Add(time.Second)
 		storage.nowFunc = func() time.Time { return now2 }
 		t.Run("UpsertUser - existing user", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "test user id",
 				Nickname: "test user nickname 2",
 				Color:    ColorOrange,
@@ -72,7 +72,7 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("GetUserById - no IP", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "test get user no ip id",
 				Nickname: "test get user no ip nickname",
 				Color:    ColorBronze,
@@ -109,7 +109,7 @@ func TestStorage_Users(t *testing.T) {
 				Color:     ColorGreen,
 				CreatedAt: now,
 			}
-			updated, err := storage.UpdateUser(ctx, &User{
+			updated, err := storage.UpdateUser(ctx, UpdateUser{
 				UserId:   "test user id",
 				Nickname: "new test nickname",
 				Color:    ColorGreen,
@@ -133,7 +133,7 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpsertUser - does not affect active type", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "test user id",
 				Nickname: "test user nickname 3",
 				Color:    ColorOrange,
@@ -155,7 +155,7 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateUser - not found", func(t *testing.T) {
-			_, err := storage.UpdateUser(ctx, &User{
+			_, err := storage.UpdateUser(ctx, UpdateUser{
 				UserId:   "not existing test user id",
 				Nickname: "new test nickname",
 			})
@@ -163,19 +163,19 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateUser - already exists", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "second test user id",
 				Nickname: "second test user nickname",
 			})
 			assert.NilError(t, err)
 
-			err = storage.UpsertUser(ctx, &User{
+			err = storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "third test user id",
 				Nickname: "third test user nickname",
 			})
 			assert.NilError(t, err)
 
-			_, err = storage.UpdateUser(ctx, &User{
+			_, err = storage.UpdateUser(ctx, UpdateUser{
 				UserId:   "second test user id",
 				Nickname: "third test user nickname",
 			})
@@ -200,7 +200,7 @@ func TestStorage_Users(t *testing.T) {
 		})
 
 		t.Run("UpdateDeviceToken - success", func(t *testing.T) {
-			err := storage.UpsertUser(ctx, &User{
+			err := storage.UpsertUser(ctx, UpsertUser{
 				UserId:   "device token user",
 				Nickname: "device token user nickname",
 			})
@@ -219,7 +219,7 @@ func TestStorage_Users(t *testing.T) {
 	t.Run("SearchUsers", func(t *testing.T) {
 		searchNow := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return searchNow }
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "search 1", Nickname: "prefix middle nickname suffix"},
 			{UserId: "search 2", Nickname: "prefix middlenick surname"},
 			{UserId: "search 3", Nickname: "prefix nsuffix"},
@@ -228,23 +228,28 @@ func TestStorage_Users(t *testing.T) {
 			err := storage.UpsertUser(ctx, u)
 			assert.NilError(t, err)
 		}
+		_, err = storage.UpdateUser(ctx, UpdateUser{
+			UserId:   "search 4",
+			Nickname: "free middle nickname",
+			Type:     UserTypeActive,
+		})
 
 		tests := []struct {
 			name    string
-			search  Search
+			search  SearchUsers
 			want    []*User
 			wantErr error
 		}{
 			{
 				name:   "success - exact",
-				search: Search{Prefix: "pr", Search: "prefix middle nickname suffix", Limit: 5},
+				search: SearchUsers{Search: "prefix middle nickname suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 				},
 			},
 			{
 				name:   "success - prefix",
-				search: Search{Prefix: "pr", Search: "prefix", Limit: 5},
+				search: SearchUsers{Search: "prefix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
@@ -253,7 +258,7 @@ func TestStorage_Users(t *testing.T) {
 			},
 			{
 				name:   "success - suffix",
-				search: Search{Prefix: "pr", Search: "suffix", Limit: 5},
+				search: SearchUsers{Search: "suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
@@ -261,24 +266,22 @@ func TestStorage_Users(t *testing.T) {
 			},
 			{
 				name:   "success - middle",
-				search: Search{Prefix: "pr", Search: "middle", Limit: 5},
+				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
 				},
 			},
 			{
-				name:   "success - middle and no limiting prefix",
-				search: Search{Prefix: "", Search: "middle", Limit: 5},
+				name:   "success - middle and active type",
+				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeActive},
 				want: []*User{
 					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow},
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
 				},
 			},
 			{
 				name:   "success - limit",
-				search: Search{Prefix: "pr", Search: "prefix", Limit: 2},
+				search: SearchUsers{Search: "prefix", Limit: 2, Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
@@ -286,7 +289,7 @@ func TestStorage_Users(t *testing.T) {
 			},
 			{
 				name:   "success - exclude",
-				search: Search{Prefix: "pr", Search: "prefix", Limit: 5, ExcludeUser: "search 2"},
+				search: SearchUsers{Search: "prefix", Limit: 5, ExcludedUserId: "search 2", Type: UserTypeBlank},
 				want: []*User{
 					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
 					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
@@ -294,12 +297,12 @@ func TestStorage_Users(t *testing.T) {
 			},
 			{
 				name:    "error - term not found",
-				search:  Search{Prefix: "pr", Search: "some invalid term", Limit: 5},
+				search:  SearchUsers{Search: "some invalid term", Limit: 5, Type: UserTypeBlank},
 				wantErr: ErrNotFound,
 			},
 			{
-				name:    "error - limiting prefix not found",
-				search:  Search{Prefix: "suffix", Search: "middle", Limit: 5},
+				name:    "error - type not found",
+				search:  SearchUsers{Search: "middle", Limit: 5, Type: UserType("some invalid type")},
 				wantErr: ErrNotFound,
 			},
 		}
@@ -320,7 +323,7 @@ func TestStorage_Users(t *testing.T) {
 	t.Run("CreateGame", func(t *testing.T) {
 		gameNow := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return gameNow }
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "game 1", Nickname: "game player 1"},
 			{UserId: "game 2", Nickname: "game player 2"},
 			{UserId: "game 3", Nickname: "game player 3"},
@@ -416,7 +419,7 @@ func TestStorage_Users(t *testing.T) {
 	t.Run("GetGamesByUserId", func(t *testing.T) {
 		gameNow := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return gameNow }
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "game_by_user1", Nickname: "game by user 1"},
 			{UserId: "game_by_user2", Nickname: "game by user 2"},
 			{UserId: "game_by_user3", Nickname: "game by user 3"},
@@ -518,7 +521,7 @@ func TestStorage_Users(t *testing.T) {
 		_, err := storage.GetActiveUsers(ctx, buffer)
 		assert.ErrorIs(t, err, ErrNotFound)
 
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "active_user1", Nickname: "active user 1"},
 			{UserId: "active_user2", Nickname: "active user 2"},
 			{UserId: "active_user3", Nickname: "active user 3"},
@@ -571,7 +574,7 @@ func TestStorage_Users(t *testing.T) {
 	t.Run("UpdateSentNotification", func(t *testing.T) {
 		now := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return now }
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "notification_user1", Nickname: "notification user 1"},
 		} {
 			err := storage.UpsertUser(ctx, u)
@@ -638,7 +641,7 @@ func TestStorage_Users(t *testing.T) {
 		_, err := storage.GetActiveGames(ctx)
 		assert.ErrorIs(t, err, ErrNotFound)
 
-		for _, u := range []*User{
+		for _, u := range []UpsertUser{
 			{UserId: "active_game_user1", Nickname: "active game user 1"},
 			{UserId: "active_game_user2", Nickname: "active game user 2"},
 			{UserId: "active_game_user3", Nickname: "active game user 3"},

@@ -111,7 +111,7 @@ func New(db *sql.DB) (*Storage, error) {
 
 	searchUsers, err := db.Prepare(`
 		SELECT id, nickname, color, created_at FROM manager_users
-			WHERE nickname LIKE $1 AND nickname LIKE $2 AND id != $3 ORDER BY nickname LIMIT $4
+			WHERE nickname LIKE $1 AND type = $2 AND id != $3 ORDER BY nickname LIMIT $4
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare searchUsers: %w", err)
@@ -213,24 +213,24 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 	return &user, nil
 }
 
-type Search struct {
-	Prefix      string
-	Search      string
-	ExcludeUser string
-	Limit       int
+type SearchUsers struct {
+	Search         string
+	ExcludedUserId string
+	Limit          int
+	Type           UserType
 }
 
-func (s *Storage) SearchUsers(ctx context.Context, search Search) ([]*User, error) {
-	rows, err := s.searchUsers.QueryContext(ctx, search.Prefix+"%", "%"+search.Search+"%", search.ExcludeUser, search.Limit)
+func (s *Storage) SearchUsers(ctx context.Context, req SearchUsers) ([]*User, error) {
+	rows, err := s.searchUsers.QueryContext(ctx,
+		"%"+req.Search+"%", req.Type, req.ExcludedUserId, req.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}
 	defer rows.Close()
 
-	users := make([]*User, 0, search.Limit)
+	users := make([]*User, 0, req.Limit)
 	for rows.Next() {
 		user := User{}
-
 		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
@@ -256,10 +256,17 @@ func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceTo
 	return nil
 }
 
-func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
+type UpdateUser struct {
+	UserId   string
+	Nickname string
+	Color    Color
+	Type     UserType
+}
+
+func (s *Storage) UpdateUser(ctx context.Context, req UpdateUser) (*User, error) {
 	updated := User{}
 
-	err := s.updateUser.QueryRowContext(ctx, user.Nickname, user.Color, user.Type, user.UserId).
+	err := s.updateUser.QueryRowContext(ctx, req.Nickname, req.Color, req.Type, req.UserId).
 		Scan(&updated.UserId, &updated.Nickname, &updated.Color, &updated.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -273,10 +280,17 @@ func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 	return &updated, nil
 }
 
-func (s *Storage) UpsertUser(ctx context.Context, user *User) error {
+type UpsertUser struct {
+	UserId   string
+	Nickname string
+	LastIp   string
+	Color    Color
+}
+
+func (s *Storage) UpsertUser(ctx context.Context, req UpsertUser) error {
 	now := s.nowFunc()
-	lastIp := toStrPtr(user.LastIp)
-	if _, err := s.upsertUser.ExecContext(ctx, user.UserId, user.Nickname, user.Color, now, lastIp); err != nil {
+	lastIp := toStrPtr(req.LastIp)
+	if _, err := s.upsertUser.ExecContext(ctx, req.UserId, req.Nickname, req.Color, now, lastIp); err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 	return nil

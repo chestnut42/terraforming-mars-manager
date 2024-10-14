@@ -70,14 +70,16 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip FROM manager_users WHERE id = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type 
+		FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUserById: %w", err)
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip FROM manager_users WHERE nickname = $1
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type
+		FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getUsersByNicknames: %w", err)
@@ -138,7 +140,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	updateUser, err := db.Prepare(`
-		UPDATE manager_users SET nickname = $1, color = $2 WHERE id = $3
+		UPDATE manager_users SET nickname = $1, color = $2, type = $3 WHERE id = $4
 			RETURNING id, nickname, color, created_at
 	`)
 	if err != nil {
@@ -183,7 +185,7 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -200,7 +202,7 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -257,7 +259,7 @@ func (s *Storage) UpdateDeviceToken(ctx context.Context, userId string, deviceTo
 func (s *Storage) UpdateUser(ctx context.Context, user *User) (*User, error) {
 	updated := User{}
 
-	err := s.updateUser.QueryRowContext(ctx, user.Nickname, user.Color, user.UserId).
+	err := s.updateUser.QueryRowContext(ctx, user.Nickname, user.Color, user.Type, user.UserId).
 		Scan(&updated.UserId, &updated.Nickname, &updated.Color, &updated.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

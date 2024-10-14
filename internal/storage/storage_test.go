@@ -43,6 +43,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 1",
+				Type:            UserTypeBlank, // Upsert creates blank user
 			})
 		})
 
@@ -66,6 +67,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
+				Type:            UserTypeBlank,
 			})
 		})
 
@@ -83,6 +85,7 @@ func TestStorage_Users(t *testing.T) {
 				Color:           ColorBronze,
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
+				Type:            UserTypeBlank,
 			}
 
 			user, err := storage.GetUserById(ctx, "test get user no ip id")
@@ -110,6 +113,7 @@ func TestStorage_Users(t *testing.T) {
 				UserId:   "test user id",
 				Nickname: "new test nickname",
 				Color:    ColorGreen,
+				Type:     UserTypeActive,
 			})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, expectedAfterUpdate, updated)
@@ -121,10 +125,33 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
+				Type:            UserTypeActive,
 			}
 			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
 			assert.DeepEqual(t, expectedAfterGet, got)
+		})
+
+		t.Run("UpsertUser - does not affect active type", func(t *testing.T) {
+			err := storage.UpsertUser(ctx, &User{
+				UserId:   "test user id",
+				Nickname: "test user nickname 3",
+				Color:    ColorOrange,
+				LastIp:   "last ip 3",
+			})
+			assert.NilError(t, err)
+
+			user, err := storage.GetUserById(ctx, "test user id")
+			assert.NilError(t, err)
+			assert.DeepEqual(t, user, &User{
+				UserId:          "test user id",
+				Nickname:        "new test nickname",
+				Color:           ColorGreen,
+				CreatedAt:       now,
+				DeviceTokenType: DeviceTokenTypeProduction,
+				LastIp:          "last ip 3",
+				Type:            UserTypeActive,
+			})
 		})
 
 		t.Run("UpdateUser - not found", func(t *testing.T) {
@@ -163,6 +190,7 @@ func TestStorage_Users(t *testing.T) {
 				Nickname:        "second test user nickname",
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
+				Type:            UserTypeBlank,
 			})
 		})
 

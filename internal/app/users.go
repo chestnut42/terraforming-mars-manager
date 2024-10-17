@@ -31,10 +31,11 @@ func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_R
 		logx.Logger(ctx).Warn("no IP in context")
 	}
 
-	if err := s.storage.UpsertUser(ctx, &storage.User{
+	if err := s.storage.UpsertUser(ctx, storage.UpsertUser{
 		UserId:   user.Id,
 		Nickname: newNickName,
 		LastIp:   curIP,
+		Color:    storage.ColorBlue,
 	}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -77,10 +78,12 @@ func (s *Service) UpdateMe(ctx context.Context, req *api.UpdateMe_Request) (*api
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	storageUser, err := s.storage.UpdateUser(ctx, &storage.User{
+
+	storageUser, err := s.storage.UpdateUser(ctx, storage.UpdateUser{
 		UserId:   user.Id,
 		Nickname: req.GetNickname(),
 		Color:    col,
+		Type:     userTypeFromNickname(req.GetNickname()),
 	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -123,16 +126,11 @@ func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	limitingPrefix := ""
-	if strings.HasPrefix(thisStorageUser.Nickname, newPlayerPrefix) {
-		limitingPrefix = newPlayerPrefix
-	}
-
-	users, err := s.storage.SearchUsers(ctx, storage.Search{
-		Prefix:      limitingPrefix,
-		Search:      req.GetSearch(),
-		ExcludeUser: thisUser.Id,
-		Limit:       5,
+	users, err := s.storage.SearchUsers(ctx, storage.SearchUsers{
+		Search:         req.GetSearch(),
+		ExcludedUserId: thisUser.Id,
+		Limit:          5,
+		Type:           userTypeFromNickname(thisStorageUser.Nickname),
 	})
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -148,4 +146,11 @@ func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (
 	return &api.SearchUser_Response{
 		Users: respUsers,
 	}, nil
+}
+
+func userTypeFromNickname(nickname string) storage.UserType {
+	if strings.HasPrefix(nickname, newPlayerPrefix) {
+		return storage.UserTypeBlank
+	}
+	return storage.UserTypeActive
 }

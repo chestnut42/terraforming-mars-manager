@@ -29,6 +29,13 @@ const (
 	DeviceTokenTypeProduction DeviceTokenType = "prod"
 )
 
+type UserType string
+
+const (
+	UserTypeBlank  UserType = "blank"  // Just created users receive this type
+	UserTypeActive UserType = "active" // Users that has changed their username and are ready to play
+)
+
 type User struct {
 	UserId          string
 	Nickname        string
@@ -37,6 +44,7 @@ type User struct {
 	DeviceToken     []byte
 	DeviceTokenType DeviceTokenType
 	LastIp          string
+	Type            UserType
 }
 
 type Game struct {

@@ -54,12 +54,14 @@ type Game struct {
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
 	Players     []*Player
+	GameResults *GameResults
 }
 
 type Player struct {
-	UserId   string
-	PlayerId string
-	Color    Color
+	UserId    string
+	PlayerId  string
+	Color     Color
+	EloChange *int64
 }
 
 type SentNotification struct {
@@ -73,6 +75,34 @@ type UserNotificationState struct {
 }
 
 type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
+
+type EloChange struct {
+	LeftUser  string
+	RightUser string
+	Winner    string
+	Change    int64
+}
+
+type EloResults struct {
+	Changes []EloChange
+}
+
+type EloUserChange struct {
+	UserId string
+	NewElo int64
+}
+
+type EloUpdateState struct {
+	Game  Game
+	Users []User
+}
+
+type EloUpdateResult struct {
+	Results EloResults
+	Users   []EloUserChange
+}
+
+type EloUpdater func(ctx context.Context, state EloUpdateState) (EloUpdateResult, error)
 
 func (sn *SentNotification) Value() (driver.Value, error) {
 	return json.Marshal(sn)
@@ -112,4 +142,22 @@ func (r *GameResults) Scan(value interface{}) error {
 	}
 
 	return json.Unmarshal(b, &r.Raw)
+}
+
+func (er *EloResults) Value() (driver.Value, error) {
+	return json.Marshal(er)
+}
+
+func (er *EloResults) Scan(value interface{}) error {
+	if value == nil {
+		*er = EloResults{}
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &er)
 }

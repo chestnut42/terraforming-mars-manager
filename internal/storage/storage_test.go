@@ -349,7 +349,7 @@ func TestStorage_Users(t *testing.T) {
 					GameId:      "g1",
 					SpectatorId: "s1",
 					ExpiresAt:   gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p1", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p3", Color: ColorYellow},
@@ -361,7 +361,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g1",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -374,7 +374,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -387,7 +387,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 4", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -400,7 +400,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorBlue},
@@ -439,7 +439,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu1",
 				SpectatorId: "sbu1",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
@@ -449,7 +449,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu2",
 				SpectatorId: "sbu2",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p2_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p2_3", Color: ColorYellow},
 				},
@@ -458,7 +458,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu3",
 				SpectatorId: "sbu3",
 				ExpiresAt:   gameNow.Add(-time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p3_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p3_3", Color: ColorYellow},
 					{UserId: "game_by_user2", PlayerId: "p3_2", Color: ColorRed},
@@ -468,7 +468,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu4",
 				SpectatorId: "sbu4",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p4_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p4_3", Color: ColorYellow},
 					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
@@ -487,7 +487,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu1",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 				},
 			},
@@ -496,7 +496,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu4",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
 				},
 			},
@@ -510,7 +510,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu1",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
@@ -542,7 +542,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au1",
 				SpectatorId: "sau1",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user1", PlayerId: "aup1_1", Color: ColorBlue},
 					{UserId: "active_user2", PlayerId: "aup1_2", Color: ColorRed},
 				},
@@ -551,7 +551,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au2",
 				SpectatorId: "sau2",
 				ExpiresAt:   gameNow.Add(-time.Minute),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user2", PlayerId: "aup2_2", Color: ColorBlue},
 					{UserId: "active_user3", PlayerId: "aup2_3", Color: ColorYellow},
 				},
@@ -560,7 +560,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au3",
 				SpectatorId: "sau3",
 				ExpiresAt:   gameNow.Add(-time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user3", PlayerId: "aup3_3", Color: ColorBlue},
 					{UserId: "active_user4", PlayerId: "aup3_4", Color: ColorYellow},
 				},
@@ -662,7 +662,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag1",
 				SpectatorId: "sgag1",
 				ExpiresAt:   now.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user1", PlayerId: "agagp1_1", Color: ColorBlue},
 					{UserId: "active_game_user2", PlayerId: "agagp1_2", Color: ColorRed},
 				},
@@ -671,7 +671,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag2",
 				SpectatorId: "sgag2",
 				ExpiresAt:   now.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user3", PlayerId: "agagp2_3", Color: ColorBlue},
 					{UserId: "active_game_user2", PlayerId: "agagp2_2", Color: ColorRed},
 				},
@@ -680,7 +680,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag3",
 				SpectatorId: "sgag3",
 				ExpiresAt:   now.Add(-time.Minute),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user1", PlayerId: "agagp3_1", Color: ColorBlue},
 					{UserId: "active_game_user4", PlayerId: "agagp3_4", Color: ColorRed},
 				},

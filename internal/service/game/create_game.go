@@ -24,18 +24,18 @@ func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
 	}
 	logx.Logger(ctx).Info("create game", slog.Any("users", users), slog.Any("response", resp))
 
-	gamePlayers := make([]*storage.Player, len(users))
+	gamePlayers := make([]storage.Player, len(users))
 	for i, u := range users {
 		for _, p := range resp.Players {
 			if u.Nickname == p.Name {
-				gamePlayers[i] = &storage.Player{
+				gamePlayers[i] = storage.Player{
 					UserId:   u.UserId,
 					PlayerId: p.Id,
 					Color:    p.Color,
 				}
 			}
 		}
-		if gamePlayers[i] == nil {
+		if gamePlayers[i] == (storage.Player{}) {
 			return fmt.Errorf("player not found: %s", u.Nickname)
 		}
 	}

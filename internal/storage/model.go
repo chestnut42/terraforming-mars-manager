@@ -53,15 +53,14 @@ type Game struct {
 	SpectatorId string
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
-	Players     []*Player
+	Players     []Player
 	GameResults *GameResults
 }
 
 type Player struct {
-	UserId    string
-	PlayerId  string
-	Color     Color
-	EloChange *int64
+	UserId   string
+	PlayerId string
+	Color    Color
 }
 
 type SentNotification struct {
@@ -77,10 +76,10 @@ type UserNotificationState struct {
 type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
 
 type EloChange struct {
-	LeftUser  string
-	RightUser string
-	Winner    string
-	Change    int64
+	PlayerId string
+	UserId   string
+	Change   int64
+	NewElo   int64
 }
 
 type EloResults struct {
@@ -90,11 +89,17 @@ type EloResults struct {
 type EloUserChange struct {
 	UserId string
 	NewElo int64
+	OldElo int64
+}
+
+type EloStateUser struct {
+	UserId string
+	Elo    int64
 }
 
 type EloUpdateState struct {
 	Game  Game
-	Users []User
+	Users []EloStateUser
 }
 
 type EloUpdateResult struct {

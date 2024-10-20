@@ -496,7 +496,7 @@ func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
 	return games, nil
 }
 
-func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results GameResults) error {
+func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results *GameResults) error {
 	now := s.nowFunc()
 	if _, err := s.updateGameResults.ExecContext(ctx, results, now, gameId); err != nil {
 		return fmt.Errorf("failed to update results: %w", err)
@@ -547,7 +547,7 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 		}
 
 		game.Players = players
-		updateResult, err := updater(ctx, EloUpdateState{
+		eloResults, err := updater(ctx, EloUpdateState{
 			Game:  game,
 			Users: stateUsers,
 		})
@@ -555,7 +555,7 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 			return fmt.Errorf("failed to update results: %w", err)
 		}
 
-		eloResultsUpdate, err := updateGameEloResults.ExecContext(ctx, updateResult.Results, game.GameId)
+		eloResultsUpdate, err := updateGameEloResults.ExecContext(ctx, eloResults, game.GameId)
 		if err != nil {
 			return fmt.Errorf("failed to exec updateGameEloResults: %w", err)
 		}
@@ -567,7 +567,7 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 			return fmt.Errorf("updateGameEloResults unexpected affected rows: %d", eloResultsAffected)
 		}
 
-		for _, u := range updateResult.Users {
+		for _, u := range eloResults.Changes {
 			r, err := updateUserElo.ExecContext(ctx, u.NewElo, u.UserId, u.OldElo)
 			if err != nil {
 				return fmt.Errorf("failed to updateUserElo: %w", err)

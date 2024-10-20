@@ -718,7 +718,7 @@ func TestStorage_Users(t *testing.T) {
 				"active_game_user1", "active_game_user2", "active_game_user3",
 			})
 
-			err = storage.UpdateGameResults(ctx, "gag1", GameResults{Raw: map[string]any{
+			err = storage.UpdateGameResults(ctx, "gag1", &GameResults{Raw: map[string]any{
 				"some data": 42,
 			}})
 			assert.NilError(t, err)
@@ -749,5 +749,81 @@ func TestStorage_Users(t *testing.T) {
 				"active_game_user2", "active_game_user3",
 			})
 		})
+	})
+
+	t.Run("UpdateElo", func(t *testing.T) {
+		now := time.Now().Truncate(time.Second).Add(-1 * time.Hour)
+		storage.nowFunc = func() time.Time { return now }
+
+		for _, u := range []UpsertUser{
+			{UserId: "update elo 1", Nickname: "update elo player 1"},
+			{UserId: "update elo 2", Nickname: "update elo player 2"},
+			{UserId: "update elo 3", Nickname: "update elo player 3"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		err := storage.CreateGame(ctx, &Game{
+			GameId:      "update elo 1",
+			SpectatorId: "spec update elo 1",
+			ExpiresAt:   now.Add(time.Hour),
+			Players: []Player{
+				{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
+				{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
+				{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+			},
+		})
+		assert.NilError(t, err)
+
+		err = storage.UpdateGameResults(ctx, "update elo 1", &GameResults{Raw: map[string]any{
+			"some data": 42,
+		}})
+		assert.NilError(t, err)
+
+		err = storage.UpdateElo(ctx, func(ctx context.Context, state EloUpdateState) (EloResults, error) {
+			assert.DeepEqual(t, EloUpdateState{
+				Game: Game{
+					GameId:      "update elo 1",
+					SpectatorId: "spec update elo 1",
+					CreatedAt:   now,
+					ExpiresAt:   now.Add(time.Hour),
+					Players: []Player{
+						{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
+						{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
+						{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+					},
+					GameResults: &GameResults{Raw: map[string]any{
+						"some data": float64(42),
+					}},
+				},
+				Users: []EloStateUser{
+					{UserId: "update elo 1", Elo: 1000},
+					{UserId: "update elo 2", Elo: 1000},
+					{UserId: "update elo 3", Elo: 1000},
+				},
+			}, state)
+			return EloResults{
+				Changes: []EloChange{
+					{UserId: "update elo 1", PlayerId: "update elo player 1 1", OldElo: 1000, NewElo: 1010},
+					{UserId: "update elo 2", PlayerId: "update elo player 1 2", OldElo: 1000, NewElo: 1000},
+					{UserId: "update elo 3", PlayerId: "update elo player 1 3", OldElo: 1000, NewElo: 985},
+				},
+			}, nil
+		})
+		assert.NilError(t, err)
+
+		for _, u := range []struct {
+			userId      string
+			expectedElo int64
+		}{
+			{userId: "update elo 1", expectedElo: 1010},
+			{userId: "update elo 2", expectedElo: 1000},
+			{userId: "update elo 3", expectedElo: 985},
+		} {
+			got, err := storage.GetUserById(ctx, u.userId)
+			assert.NilError(t, err)
+			assert.Equal(t, u.expectedElo, got.Elo)
+		}
 	})
 }

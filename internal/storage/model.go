@@ -78,18 +78,12 @@ type SentNotificationUpdater func(ctx context.Context, state UserNotificationSta
 type EloChange struct {
 	PlayerId string
 	UserId   string
-	Change   int64
+	OldElo   int64
 	NewElo   int64
 }
 
 type EloResults struct {
 	Changes []EloChange
-}
-
-type EloUserChange struct {
-	UserId string
-	NewElo int64
-	OldElo int64
 }
 
 type EloStateUser struct {
@@ -102,12 +96,7 @@ type EloUpdateState struct {
 	Users []EloStateUser
 }
 
-type EloUpdateResult struct {
-	Results EloResults
-	Users   []EloUserChange
-}
-
-type EloUpdater func(ctx context.Context, state EloUpdateState) (EloUpdateResult, error)
+type EloUpdater func(ctx context.Context, state EloUpdateState) (EloResults, error)
 
 func (sn *SentNotification) Value() (driver.Value, error) {
 	return json.Marshal(sn)
@@ -132,7 +121,11 @@ type GameResults struct {
 }
 
 func (r *GameResults) Value() (driver.Value, error) {
-	return json.Marshal(r.Raw)
+	v, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("marshal GameResults failed: %v", err)
+	}
+	return v, nil
 }
 
 func (r *GameResults) Scan(value interface{}) error {
@@ -146,7 +139,7 @@ func (r *GameResults) Scan(value interface{}) error {
 		return fmt.Errorf("type assertion to []byte failed")
 	}
 
-	return json.Unmarshal(b, &r.Raw)
+	return json.Unmarshal(b, r)
 }
 
 func (er *EloResults) Value() (driver.Value, error) {

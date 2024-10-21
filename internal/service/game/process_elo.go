@@ -33,7 +33,7 @@ func (s *Service) ProcessElo(ctx context.Context) error {
 	}
 }
 
-func updateElo(ctx context.Context, state storage.EloUpdateState) (storage.EloResults, error) {
+func updateElo(_ context.Context, state storage.EloUpdateState) (storage.EloResults, error) {
 	gameResponse, err := mars.GetGameResponseFromRaw(state.Game.GameResults.Raw)
 	if err != nil {
 		return storage.EloResults{}, fmt.Errorf("failed to get game response from raw: %w", err)

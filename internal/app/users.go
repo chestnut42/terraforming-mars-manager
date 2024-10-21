@@ -17,7 +17,10 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
 
-const newPlayerPrefix = "Player "
+const (
+	newPlayerPrefix  = "Player "
+	leaderboardLimit = 50
+)
 
 func (s *Service) Login(ctx context.Context, _ *api.Login_Request) (*api.Login_Response, error) {
 	user, ok := auth.UserFromContext(ctx)
@@ -144,6 +147,28 @@ func (s *Service) SearchUser(ctx context.Context, req *api.SearchUser_Request) (
 		respUsers[i] = userToAPI(user)
 	}
 	return &api.SearchUser_Response{
+		Users: respUsers,
+	}, nil
+}
+
+func (s *Service) GetEloLeaderboard(ctx context.Context, req *api.GetEloLeaderboard_Request) (*api.GetEloLeaderboard_Response, error) {
+	if _, ok := auth.UserFromContext(ctx); !ok {
+		return nil, status.Error(codes.Unauthenticated, "user not found")
+	}
+
+	users, err := s.storage.GetLeaderboard(ctx, storage.UserTypeActive, leaderboardLimit)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	respUsers := make([]*api.User, len(users))
+	for i, user := range users {
+		respUsers[i] = userToAPI(user)
+	}
+	return &api.GetEloLeaderboard_Response{
 		Users: respUsers,
 	}, nil
 }

@@ -39,6 +39,7 @@ func userToAPI(user *storage.User) *api.User {
 		Nickname:  user.Nickname,
 		Color:     toAPIColors[user.Color],
 		CreatedAt: timestamppb.New(user.CreatedAt),
+		Elo:       int32(user.Elo),
 	}
 }
 

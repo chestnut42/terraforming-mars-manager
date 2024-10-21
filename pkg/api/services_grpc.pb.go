@@ -25,6 +25,7 @@ const (
 	Users_UpdateMe_FullMethodName          = "/api.Users/UpdateMe"
 	Users_UpdateDeviceToken_FullMethodName = "/api.Users/UpdateDeviceToken"
 	Users_SearchUser_FullMethodName        = "/api.Users/SearchUser"
+	Users_GetEloLeaderboard_FullMethodName = "/api.Users/GetEloLeaderboard"
 )
 
 // UsersClient is the client API for Users service.
@@ -36,6 +37,7 @@ type UsersClient interface {
 	UpdateMe(ctx context.Context, in *UpdateMe_Request, opts ...grpc.CallOption) (*UpdateMe_Response, error)
 	UpdateDeviceToken(ctx context.Context, in *UpdateDeviceToken_Request, opts ...grpc.CallOption) (*UpdateDeviceToken_Response, error)
 	SearchUser(ctx context.Context, in *SearchUser_Request, opts ...grpc.CallOption) (*SearchUser_Response, error)
+	GetEloLeaderboard(ctx context.Context, in *GetEloLeaderboard_Request, opts ...grpc.CallOption) (*GetEloLeaderboard_Response, error)
 }
 
 type usersClient struct {
@@ -96,6 +98,16 @@ func (c *usersClient) SearchUser(ctx context.Context, in *SearchUser_Request, op
 	return out, nil
 }
 
+func (c *usersClient) GetEloLeaderboard(ctx context.Context, in *GetEloLeaderboard_Request, opts ...grpc.CallOption) (*GetEloLeaderboard_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEloLeaderboard_Response)
+	err := c.cc.Invoke(ctx, Users_GetEloLeaderboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UsersServer is the server API for Users service.
 // All implementations must embed UnimplementedUsersServer
 // for forward compatibility
@@ -105,6 +117,7 @@ type UsersServer interface {
 	UpdateMe(context.Context, *UpdateMe_Request) (*UpdateMe_Response, error)
 	UpdateDeviceToken(context.Context, *UpdateDeviceToken_Request) (*UpdateDeviceToken_Response, error)
 	SearchUser(context.Context, *SearchUser_Request) (*SearchUser_Response, error)
+	GetEloLeaderboard(context.Context, *GetEloLeaderboard_Request) (*GetEloLeaderboard_Response, error)
 	mustEmbedUnimplementedUsersServer()
 }
 
@@ -126,6 +139,9 @@ func (UnimplementedUsersServer) UpdateDeviceToken(context.Context, *UpdateDevice
 }
 func (UnimplementedUsersServer) SearchUser(context.Context, *SearchUser_Request) (*SearchUser_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchUser not implemented")
+}
+func (UnimplementedUsersServer) GetEloLeaderboard(context.Context, *GetEloLeaderboard_Request) (*GetEloLeaderboard_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEloLeaderboard not implemented")
 }
 func (UnimplementedUsersServer) mustEmbedUnimplementedUsersServer() {}
 
@@ -230,6 +246,24 @@ func _Users_SearchUser_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Users_GetEloLeaderboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEloLeaderboard_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UsersServer).GetEloLeaderboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Users_GetEloLeaderboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UsersServer).GetEloLeaderboard(ctx, req.(*GetEloLeaderboard_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Users_ServiceDesc is the grpc.ServiceDesc for Users service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -256,6 +290,10 @@ var Users_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchUser",
 			Handler:    _Users_SearchUser_Handler,
+		},
+		{
+			MethodName: "GetEloLeaderboard",
+			Handler:    _Users_GetEloLeaderboard_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -759,6 +759,7 @@ func TestStorage_Users(t *testing.T) {
 			{UserId: "update elo 1", Nickname: "update elo player 1"},
 			{UserId: "update elo 2", Nickname: "update elo player 2"},
 			{UserId: "update elo 3", Nickname: "update elo player 3"},
+			{UserId: "update elo 4", Nickname: "update elo player 4"},
 		} {
 			err := storage.UpsertUser(ctx, u)
 			assert.NilError(t, err)
@@ -772,6 +773,7 @@ func TestStorage_Users(t *testing.T) {
 				{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
 				{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
 				{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+				{UserId: "update elo 4", PlayerId: "update elo player 1 4", Color: ColorPink},
 			},
 		})
 		assert.NilError(t, err)
@@ -792,6 +794,7 @@ func TestStorage_Users(t *testing.T) {
 						{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
 						{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
 						{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+						{UserId: "update elo 4", PlayerId: "update elo player 1 4", Color: ColorPink},
 					},
 					GameResults: &GameResults{Raw: map[string]any{
 						"some data": float64(42),
@@ -801,6 +804,7 @@ func TestStorage_Users(t *testing.T) {
 					{UserId: "update elo 1", Elo: 1000},
 					{UserId: "update elo 2", Elo: 1000},
 					{UserId: "update elo 3", Elo: 1000},
+					{UserId: "update elo 4", Elo: 1000},
 				},
 			}, state)
 			return EloResults{
@@ -808,6 +812,7 @@ func TestStorage_Users(t *testing.T) {
 					{UserId: "update elo 1", PlayerId: "update elo player 1 1", OldElo: 1000, NewElo: 1010},
 					{UserId: "update elo 2", PlayerId: "update elo player 1 2", OldElo: 1000, NewElo: 1000},
 					{UserId: "update elo 3", PlayerId: "update elo player 1 3", OldElo: 1000, NewElo: 985},
+					{UserId: "update elo 4", PlayerId: "update elo player 1 4", OldElo: 1000, NewElo: 1024},
 				},
 			}, nil
 		})
@@ -820,10 +825,20 @@ func TestStorage_Users(t *testing.T) {
 			{userId: "update elo 1", expectedElo: 1010},
 			{userId: "update elo 2", expectedElo: 1000},
 			{userId: "update elo 3", expectedElo: 985},
+			{userId: "update elo 4", expectedElo: 1024},
 		} {
 			got, err := storage.GetUserById(ctx, u.userId)
 			assert.NilError(t, err)
 			assert.Equal(t, u.expectedElo, got.Elo)
 		}
+
+		t.Run("leaderboard", func(t *testing.T) {
+			got, err := storage.GetLeaderboard(ctx, UserTypeBlank, 2)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, []*User{
+				{UserId: "update elo 4", Nickname: "update elo player 4", CreatedAt: now, Elo: 1024},
+				{UserId: "update elo 1", Nickname: "update elo player 1", CreatedAt: now, Elo: 1010},
+			}, got)
+		})
 	})
 }

@@ -16,6 +16,7 @@ type Storage struct {
 	getGameByPlayerId     *sql.Stmt
 	getGamePlayersAndElo  *sql.Stmt
 	getGamesByUserId      *sql.Stmt
+	getLeaderboard        *sql.Stmt
 	getOldestFinishedGame *sql.Stmt
 	getUserById           *sql.Stmt
 	getUserByNickname     *sql.Stmt
@@ -81,6 +82,14 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getGamesByUserId: %w", err)
+	}
+
+	getLeaderboard, err := db.Prepare(`
+		SELECT id, nickname, color, created_at, elo FROM manager_users
+			ORDER BY elo desc LIMIT $1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getLeaderboard: %w", err)
 	}
 
 	getOldestFinishedGame, err := db.Prepare(`
@@ -202,6 +211,7 @@ func New(db *sql.DB) (*Storage, error) {
 		getGameByPlayerId:     getGameByPlayerId,
 		getGamePlayersAndElo:  getGamePlayersAndElo,
 		getGamesByUserId:      getGamesByUserId,
+		getLeaderboard:        getLeaderboard,
 		getOldestFinishedGame: getOldestFinishedGame,
 		getUserById:           getUserById,
 		getUserByNickname:     getUserByNickname,
@@ -585,4 +595,28 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 		return fmt.Errorf("failed to update elo: %w", err)
 	}
 	return nil
+}
+
+func (s *Storage) GetLeaderboard(ctx context.Context, limit int64) ([]*User, error) {
+	rows, err := s.getLeaderboard.QueryContext(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]*User, 0, limit)
+	for rows.Next() {
+		user := User{}
+		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.Elo); err != nil {
+			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+		}
+		users = append(users, &user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
+	}
+	if len(users) == 0 {
+		return nil, ErrNotFound
+	}
+	return users, nil
 }

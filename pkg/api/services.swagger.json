@@ -60,6 +60,37 @@
         ]
       }
     },
+    "/manager/api/v1/leaderboard": {
+      "get": {
+        "operationId": "Users_GetEloLeaderboard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetEloLeaderboardResponse"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/manager/api/v1/login": {
       "post": {
         "operationId": "Users_Login",
@@ -335,6 +366,18 @@
       ],
       "default": "GAME_STATUS_IN_PROGRESS"
     },
+    "apiGetEloLeaderboardResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiUser"
+          }
+        }
+      }
+    },
     "apiGetGamesResponse": {
       "type": "object",
       "properties": {
@@ -447,6 +490,10 @@
         "createdAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "elo": {
+          "type": "string",
+          "format": "int64"
         }
       }
     },

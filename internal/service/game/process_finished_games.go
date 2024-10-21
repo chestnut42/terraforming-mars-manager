@@ -12,7 +12,7 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
-func (s *Service) Run(ctx context.Context) error {
+func (s *Service) ProcessFinishedGames(ctx context.Context) error {
 	for {
 		games := s.getGamesToProcess(ctx)
 		for _, g := range games {

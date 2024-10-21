@@ -16,6 +16,7 @@ type Storage interface {
 	CreateGame(ctx context.Context, game *storage.Game) error
 	GetActiveGames(ctx context.Context) ([]*storage.Game, error)
 	GetGamesByUserId(ctx context.Context, userId string) ([]*storage.Game, error)
+	UpdateElo(ctx context.Context, updater storage.EloUpdater) error
 	UpdateGameResults(ctx context.Context, gameId string, results *storage.GameResults) error
 }
 

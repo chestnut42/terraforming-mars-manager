@@ -804,7 +804,7 @@ func TestStorage_Users(t *testing.T) {
 				},
 			}, state)
 			return EloResults{
-				Changes: []EloChange{
+				Players: []EloResultsPlayer{
 					{UserId: "update elo 1", PlayerId: "update elo player 1 1", OldElo: 1000, NewElo: 1010},
 					{UserId: "update elo 2", PlayerId: "update elo player 1 2", OldElo: 1000, NewElo: 1000},
 					{UserId: "update elo 3", PlayerId: "update elo player 1 3", OldElo: 1000, NewElo: 985},

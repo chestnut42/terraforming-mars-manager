@@ -124,7 +124,10 @@ func main() {
 		return notifySvc.Run(ctx)
 	})
 	eg.Go(func() error {
-		return gameSvc.Run(ctx)
+		return gameSvc.ProcessFinishedGames(ctx)
+	})
+	eg.Go(func() error {
+		return gameSvc.ProcessElo(ctx)
 	})
 	eg.Go(func() error {
 		return signalx.ListenContext(ctx, syscall.SIGTERM, syscall.SIGINT)

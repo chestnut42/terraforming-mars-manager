@@ -18,12 +18,14 @@ func TestGetGameDAO(t *testing.T) {
 		HasFinished: true,
 		Players: []GetGamePlayer{
 			{
-				Id:    "pfd7bca2ed0cb",
-				Score: 136,
+				Id:          "pfd7bca2ed0cb",
+				MegaCredits: 83,
+				Score:       136,
 			},
 			{
-				Id:    "p53cdbf44f911",
-				Score: 122,
+				Id:          "p53cdbf44f911",
+				MegaCredits: 66,
+				Score:       122,
 			},
 		},
 	})

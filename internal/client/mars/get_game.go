@@ -13,8 +13,9 @@ import (
 )
 
 type GetGamePlayer struct {
-	Id    string
-	Score int
+	Id          string
+	MegaCredits int
+	Score       int
 }
 
 type GetGameModel struct {
@@ -92,8 +93,9 @@ func readResponse(data []byte) (GetGameResponse, error) {
 	players := make([]GetGamePlayer, len(resp.Players))
 	for i, p := range resp.Players {
 		players[i] = GetGamePlayer{
-			Id:    p.Id,
-			Score: p.VPBreakdown.Total,
+			Id:          p.Id,
+			MegaCredits: p.MegaCredits,
+			Score:       p.VPBreakdown.Total,
 		}
 	}
 	return GetGameResponse{
@@ -116,6 +118,7 @@ type getGameGame struct {
 
 type getGamePlayer struct {
 	Id          string                        `json:"id"`
+	MegaCredits int                           `json:"megaCredits"`
 	VPBreakdown getGameVictoryPointsBreakdown `json:"victoryPointsBreakdown"`
 }
 

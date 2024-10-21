@@ -75,15 +75,25 @@ type UserNotificationState struct {
 
 type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
 
-type EloChange struct {
+type EloResultsPlayer struct {
 	PlayerId string
 	UserId   string
 	OldElo   int64
 	NewElo   int64
 }
 
+type EloResultsPair struct {
+	LeftPlayerId    string
+	RightPlayerId   string
+	LeftPlayerElo   int64
+	RightPlayerElo  int64
+	LeftEloDelta    int64
+	LeftPlayerScore float64
+}
+
 type EloResults struct {
-	Changes []EloChange
+	Pairs   []EloResultsPair
+	Players []EloResultsPlayer
 }
 
 type EloStateUser struct {

@@ -567,7 +567,7 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 			return fmt.Errorf("updateGameEloResults unexpected affected rows: %d", eloResultsAffected)
 		}
 
-		for _, u := range eloResults.Changes {
+		for _, u := range eloResults.Players {
 			r, err := updateUserElo.ExecContext(ctx, u.NewElo, u.UserId, u.OldElo)
 			if err != nil {
 				return fmt.Errorf("failed to updateUserElo: %w", err)

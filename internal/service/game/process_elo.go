@@ -4,12 +4,13 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
-	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
-	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"log/slog"
 	"math"
 	"time"
+
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
+	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
 const (

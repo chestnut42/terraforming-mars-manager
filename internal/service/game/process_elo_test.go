@@ -2,9 +2,11 @@ package game
 
 import (
 	"context"
-	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
-	"gotest.tools/v3/assert"
 	"testing"
+
+	"gotest.tools/v3/assert"
+
+	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
 func TestUpdateElo(t *testing.T) {

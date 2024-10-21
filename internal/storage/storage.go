@@ -86,7 +86,8 @@ func New(db *sql.DB) (*Storage, error) {
 
 	getLeaderboard, err := db.Prepare(`
 		SELECT id, nickname, color, created_at, elo FROM manager_users
-			ORDER BY elo desc LIMIT $1
+		    WHERE type = $1
+			ORDER BY elo desc LIMIT $2
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare getLeaderboard: %w", err)
@@ -597,8 +598,8 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 	return nil
 }
 
-func (s *Storage) GetLeaderboard(ctx context.Context, limit int64) ([]*User, error) {
-	rows, err := s.getLeaderboard.QueryContext(ctx, limit)
+func (s *Storage) GetLeaderboard(ctx context.Context, ut UserType, limit int64) ([]*User, error) {
+	rows, err := s.getLeaderboard.QueryContext(ctx, ut, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}

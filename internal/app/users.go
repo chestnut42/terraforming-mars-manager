@@ -156,7 +156,7 @@ func (s *Service) GetEloLeaderboard(ctx context.Context, req *api.GetEloLeaderbo
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
-	users, err := s.storage.GetLeaderboard(ctx, leaderboardLimit)
+	users, err := s.storage.GetLeaderboard(ctx, storage.UserTypeActive, leaderboardLimit)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())

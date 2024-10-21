@@ -9,7 +9,7 @@ import (
 )
 
 type Storage interface {
-	GetLeaderboard(ctx context.Context, limit int64) ([]*storage.User, error)
+	GetLeaderboard(ctx context.Context, ut storage.UserType, limit int64) ([]*storage.User, error)
 	GetUserById(ctx context.Context, userId string) (*storage.User, error)
 	GetUserByNickname(ctx context.Context, nickname string) (*storage.User, error)
 	SearchUsers(ctx context.Context, req storage.SearchUsers) ([]*storage.User, error)

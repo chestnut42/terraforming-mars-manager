@@ -833,7 +833,7 @@ func TestStorage_Users(t *testing.T) {
 		}
 
 		t.Run("leaderboard", func(t *testing.T) {
-			got, err := storage.GetLeaderboard(ctx, 2)
+			got, err := storage.GetLeaderboard(ctx, UserTypeBlank, 2)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, []*User{
 				{UserId: "update elo 4", Nickname: "update elo player 4", CreatedAt: now, Elo: 1024},

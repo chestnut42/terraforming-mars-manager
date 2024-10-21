@@ -11,21 +11,25 @@ import (
 type Storage struct {
 	db *sql.DB
 
-	getActiveGames    *sql.Stmt
-	getActiveUsers    *sql.Stmt
-	getGameByPlayerId *sql.Stmt
-	getGamesByUserId  *sql.Stmt
-	getUserById       *sql.Stmt
-	getUserByNickname *sql.Stmt
-	insertGame        *sql.Stmt
-	insertPlayer      *sql.Stmt
-	lockUser          *sql.Stmt
-	searchUsers       *sql.Stmt
-	updateDeviceToken *sql.Stmt
-	updateGameResults *sql.Stmt
-	updateLockedUser  *sql.Stmt
-	updateUser        *sql.Stmt
-	upsertUser        *sql.Stmt
+	getActiveGames        *sql.Stmt
+	getActiveUsers        *sql.Stmt
+	getGameByPlayerId     *sql.Stmt
+	getGamePlayersAndElo  *sql.Stmt
+	getGamesByUserId      *sql.Stmt
+	getOldestFinishedGame *sql.Stmt
+	getUserById           *sql.Stmt
+	getUserByNickname     *sql.Stmt
+	insertGame            *sql.Stmt
+	insertPlayer          *sql.Stmt
+	lockUser              *sql.Stmt
+	searchUsers           *sql.Stmt
+	updateDeviceToken     *sql.Stmt
+	updateGameEloResults  *sql.Stmt
+	updateGameResults     *sql.Stmt
+	updateLockedUser      *sql.Stmt
+	updateUser            *sql.Stmt
+	updateUserElo         *sql.Stmt
+	upsertUser            *sql.Stmt
 
 	nowFunc func() time.Time
 }
@@ -58,6 +62,16 @@ func New(db *sql.DB) (*Storage, error) {
 		return nil, fmt.Errorf("failed to prepare getGameByPlayerId: %w", err)
 	}
 
+	getGamePlayersAndElo, err := db.Prepare(`
+		SELECT manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color,
+		       manager_users.elo
+			FROM manager_game_players INNER JOIN manager_users ON manager_users.id = manager_game_players.user_id
+			WHERE manager_game_players.game_id = $1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getGamePlayersAndElo: %w", err)
+	}
+
 	getGamesByUserId, err := db.Prepare(`
 		SELECT manager_games.id, manager_games.spectator_id, manager_games.created_at, manager_games.expires_at,
 		       manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color
@@ -69,8 +83,18 @@ func New(db *sql.DB) (*Storage, error) {
 		return nil, fmt.Errorf("failed to prepare getGamesByUserId: %w", err)
 	}
 
+	getOldestFinishedGame, err := db.Prepare(`
+		SELECT id, spectator_id, created_at, expires_at, results
+		    FROM manager_games
+		    WHERE results is not null AND finished_at is not null AND elo_results is null
+			ORDER BY finished_at LIMIT 1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare getFinishedGameForUpdate: %w", err)
+	}
+
 	getUserById, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type 
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type, elo 
 		FROM manager_users WHERE id = $1
 	`)
 	if err != nil {
@@ -78,7 +102,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	getUserByNickname, err := db.Prepare(`
-		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type
+		SELECT id, nickname, color, created_at, device_token, device_token_type, last_ip, type, elo
 		FROM manager_users WHERE nickname = $1
 	`)
 	if err != nil {
@@ -110,7 +134,7 @@ func New(db *sql.DB) (*Storage, error) {
 	}
 
 	searchUsers, err := db.Prepare(`
-		SELECT id, nickname, color, created_at FROM manager_users
+		SELECT id, nickname, color, created_at, elo FROM manager_users
 			WHERE nickname LIKE $1 AND type = $2 AND id != $3 ORDER BY nickname LIMIT $4
 	`)
 	if err != nil {
@@ -122,6 +146,13 @@ func New(db *sql.DB) (*Storage, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare updateDeviceToken: %w", err)
+	}
+
+	updateGameEloResults, err := db.Prepare(`
+		UPDATE manager_games SET elo_results = $1 WHERE id = $2 AND elo_results is null
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateGameEloResults: %w", err)
 	}
 
 	updateGameResults, err := db.Prepare(`
@@ -147,6 +178,13 @@ func New(db *sql.DB) (*Storage, error) {
 		return nil, fmt.Errorf("failed to prepare updateUser: %w", err)
 	}
 
+	updateUserElo, err := db.Prepare(`
+		UPDATE manager_users SET elo = $1 WHERE id = $2 and elo = $3
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare updateUserElo: %w", err)
+	}
+
 	upsertUser, err := db.Prepare(`
 		INSERT INTO manager_users (id, nickname, color, created_at, last_ip)
 			VALUES ($1, $2, $3, $4, $5)
@@ -159,21 +197,25 @@ func New(db *sql.DB) (*Storage, error) {
 	return &Storage{
 		db: db,
 
-		getActiveGames:    getActiveGames,
-		getActiveUsers:    getActiveUsers,
-		getGameByPlayerId: getGameByPlayerId,
-		getGamesByUserId:  getGamesByUserId,
-		getUserById:       getUserById,
-		getUserByNickname: getUserByNickname,
-		insertGame:        insertGame,
-		insertPlayer:      insertPlayer,
-		lockUser:          lockUser,
-		searchUsers:       searchUsers,
-		updateDeviceToken: updateDeviceToken,
-		updateGameResults: updateGameResults,
-		updateLockedUser:  updateLockedUser,
-		updateUser:        updateUser,
-		upsertUser:        upsertUser,
+		getActiveGames:        getActiveGames,
+		getActiveUsers:        getActiveUsers,
+		getGameByPlayerId:     getGameByPlayerId,
+		getGamePlayersAndElo:  getGamePlayersAndElo,
+		getGamesByUserId:      getGamesByUserId,
+		getOldestFinishedGame: getOldestFinishedGame,
+		getUserById:           getUserById,
+		getUserByNickname:     getUserByNickname,
+		insertGame:            insertGame,
+		insertPlayer:          insertPlayer,
+		lockUser:              lockUser,
+		searchUsers:           searchUsers,
+		updateDeviceToken:     updateDeviceToken,
+		updateGameEloResults:  updateGameEloResults,
+		updateGameResults:     updateGameResults,
+		updateLockedUser:      updateLockedUser,
+		updateUser:            updateUser,
+		updateUserElo:         updateUserElo,
+		upsertUser:            upsertUser,
 
 		nowFunc: time.Now,
 	}, nil
@@ -185,7 +227,7 @@ func (s *Storage) GetUserById(ctx context.Context, userId string) (*User, error)
 
 	err := s.getUserById.QueryRowContext(ctx, userId).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type, &user.Elo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -202,7 +244,7 @@ func (s *Storage) GetUserByNickname(ctx context.Context, nickname string) (*User
 
 	err := s.getUserByNickname.QueryRowContext(ctx, nickname).
 		Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt,
-			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type)
+			&user.DeviceToken, &user.DeviceTokenType, &lastIp, &user.Type, &user.Elo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -231,7 +273,7 @@ func (s *Storage) SearchUsers(ctx context.Context, req SearchUsers) ([]*User, er
 	users := make([]*User, 0, req.Limit)
 	for rows.Next() {
 		user := User{}
-		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.UserId, &user.Nickname, &user.Color, &user.CreatedAt, &user.Elo); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
 		users = append(users, &user)
@@ -337,7 +379,7 @@ func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game,
 			&player.UserId, &player.PlayerId, &player.Color); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
-		game.Players = []*Player{&player}
+		game.Players = []Player{player}
 		games = append(games, &game)
 	}
 	if err := rows.Err(); err != nil {
@@ -364,7 +406,7 @@ func (s *Storage) GetGameByPlayerId(ctx context.Context, playerId string) (*Game
 			&player.UserId, &player.PlayerId, &player.Color); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}
-		game.Players = append(game.Players, &player)
+		game.Players = append(game.Players, player)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
@@ -441,12 +483,12 @@ func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
 	for rows.Next() {
 		game := Game{}
 		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt); err != nil {
-			return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
+			return nil, fmt.Errorf("failed to scan a row getActiveGames: %w", err)
 		}
 		games = append(games, &game)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
+		return nil, fmt.Errorf("failed to iterate over rows getActiveGames: %w", err)
 	}
 	if len(games) == 0 {
 		return nil, ErrNotFound
@@ -454,10 +496,93 @@ func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
 	return games, nil
 }
 
-func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results GameResults) error {
+func (s *Storage) UpdateGameResults(ctx context.Context, gameId string, results *GameResults) error {
 	now := s.nowFunc()
 	if _, err := s.updateGameResults.ExecContext(ctx, results, now, gameId); err != nil {
 		return fmt.Errorf("failed to update results: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
+	if err := s.withTX(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		getGamePlayersAndElo := tx.StmtContext(ctx, s.getGamePlayersAndElo)
+		getOldestFinishedGame := tx.StmtContext(ctx, s.getOldestFinishedGame)
+		updateGameEloResults := tx.StmtContext(ctx, s.updateGameEloResults)
+		updateUserElo := tx.StmtContext(ctx, s.updateUserElo)
+
+		var game Game
+		err := getOldestFinishedGame.QueryRowContext(ctx).
+			Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt, &game.GameResults)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("no finished game found: %w", ErrNotFound)
+			}
+			return fmt.Errorf("failed to query getOldestFinishedGame: %w", err)
+		}
+
+		rows, err := getGamePlayersAndElo.QueryContext(ctx, game.GameId)
+		if err != nil {
+			return fmt.Errorf("failed to query getGamePlayersAndElo: %w", err)
+		}
+		defer rows.Close()
+
+		var players []Player
+		var stateUsers []EloStateUser
+		for rows.Next() {
+			p := Player{}
+			u := EloStateUser{}
+			if err := rows.Scan(&p.UserId, &p.PlayerId, &p.Color, &u.Elo); err != nil {
+				return fmt.Errorf("failed to scan a row getGamePlayersAndElo: %w", err)
+			}
+			u.UserId = p.UserId
+			players = append(players, p)
+			stateUsers = append(stateUsers, u)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("failed to iterate over rows getActiveGames: %w", err)
+		}
+		if len(players) == 0 || len(stateUsers) == 0 {
+			return fmt.Errorf("no players found for the game: %s", game.GameId)
+		}
+
+		game.Players = players
+		eloResults, err := updater(ctx, EloUpdateState{
+			Game:  game,
+			Users: stateUsers,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update results: %w", err)
+		}
+
+		eloResultsUpdate, err := updateGameEloResults.ExecContext(ctx, eloResults, game.GameId)
+		if err != nil {
+			return fmt.Errorf("failed to exec updateGameEloResults: %w", err)
+		}
+		eloResultsAffected, err := eloResultsUpdate.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected updateGameEloResults: %w", err)
+		}
+		if eloResultsAffected != 1 {
+			return fmt.Errorf("updateGameEloResults unexpected affected rows: %d", eloResultsAffected)
+		}
+
+		for _, u := range eloResults.Players {
+			r, err := updateUserElo.ExecContext(ctx, u.NewElo, u.UserId, u.OldElo)
+			if err != nil {
+				return fmt.Errorf("failed to updateUserElo: %w", err)
+			}
+			affected, err := r.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("failed to get rows affected updateUserEloResults: %w", err)
+			}
+			if affected != 1 {
+				return fmt.Errorf("updateUserElo unexpected affected rows: %d", affected)
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to update elo: %w", err)
 	}
 	return nil
 }

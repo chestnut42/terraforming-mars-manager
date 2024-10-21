@@ -44,6 +44,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 1",
 				Type:            UserTypeBlank, // Upsert creates blank user
+				Elo:             1000,
 			})
 		})
 
@@ -68,6 +69,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			})
 		})
 
@@ -86,6 +88,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			}
 
 			user, err := storage.GetUserById(ctx, "test get user no ip id")
@@ -126,6 +129,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 2",
 				Type:            UserTypeActive,
+				Elo:             1000,
 			}
 			got, err := storage.GetUserById(ctx, "test user id")
 			assert.NilError(t, err)
@@ -151,6 +155,7 @@ func TestStorage_Users(t *testing.T) {
 				DeviceTokenType: DeviceTokenTypeProduction,
 				LastIp:          "last ip 3",
 				Type:            UserTypeActive,
+				Elo:             1000,
 			})
 		})
 
@@ -191,6 +196,7 @@ func TestStorage_Users(t *testing.T) {
 				CreatedAt:       now2,
 				DeviceTokenType: DeviceTokenTypeProduction,
 				Type:            UserTypeBlank,
+				Elo:             1000,
 			})
 		})
 
@@ -244,55 +250,55 @@ func TestStorage_Users(t *testing.T) {
 				name:   "success - exact",
 				search: SearchUsers{Search: "prefix middle nickname suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - prefix",
 				search: SearchUsers{Search: "prefix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - suffix",
 				search: SearchUsers{Search: "suffix", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - middle",
 				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - middle and active type",
 				search: SearchUsers{Search: "middle", Limit: 5, Type: UserTypeActive},
 				want: []*User{
-					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow},
+					{UserId: "search 4", Nickname: "free middle nickname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - limit",
 				search: SearchUsers{Search: "prefix", Limit: 2, Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 2", Nickname: "prefix middlenick surname", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
 				name:   "success - exclude",
 				search: SearchUsers{Search: "prefix", Limit: 5, ExcludedUserId: "search 2", Type: UserTypeBlank},
 				want: []*User{
-					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow},
-					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow},
+					{UserId: "search 1", Nickname: "prefix middle nickname suffix", CreatedAt: searchNow, Elo: 1000},
+					{UserId: "search 3", Nickname: "prefix nsuffix", CreatedAt: searchNow, Elo: 1000},
 				},
 			},
 			{
@@ -343,7 +349,7 @@ func TestStorage_Users(t *testing.T) {
 					GameId:      "g1",
 					SpectatorId: "s1",
 					ExpiresAt:   gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p1", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p3", Color: ColorYellow},
@@ -355,7 +361,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g1",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -368,7 +374,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p2", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -381,7 +387,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 4", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorYellow},
@@ -394,7 +400,7 @@ func TestStorage_Users(t *testing.T) {
 				game: Game{
 					GameId:    "g2",
 					ExpiresAt: gameNow.Add(time.Hour),
-					Players: []*Player{
+					Players: []Player{
 						{UserId: "game 1", PlayerId: "p4", Color: ColorBlue},
 						{UserId: "game 2", PlayerId: "p5", Color: ColorRed},
 						{UserId: "game 3", PlayerId: "p6", Color: ColorBlue},
@@ -433,7 +439,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu1",
 				SpectatorId: "sbu1",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
@@ -443,7 +449,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu2",
 				SpectatorId: "sbu2",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p2_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p2_3", Color: ColorYellow},
 				},
@@ -452,7 +458,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu3",
 				SpectatorId: "sbu3",
 				ExpiresAt:   gameNow.Add(-time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p3_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p3_3", Color: ColorYellow},
 					{UserId: "game_by_user2", PlayerId: "p3_2", Color: ColorRed},
@@ -462,7 +468,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gbu4",
 				SpectatorId: "sbu4",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p4_1", Color: ColorBlue},
 					{UserId: "game_by_user3", PlayerId: "p4_3", Color: ColorYellow},
 					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
@@ -481,7 +487,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu1",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 				},
 			},
@@ -490,7 +496,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu4",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
 				},
 			},
@@ -504,7 +510,7 @@ func TestStorage_Users(t *testing.T) {
 				SpectatorId: "sbu1",
 				CreatedAt:   gameNow,
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
 					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
 					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
@@ -536,7 +542,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au1",
 				SpectatorId: "sau1",
 				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user1", PlayerId: "aup1_1", Color: ColorBlue},
 					{UserId: "active_user2", PlayerId: "aup1_2", Color: ColorRed},
 				},
@@ -545,7 +551,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au2",
 				SpectatorId: "sau2",
 				ExpiresAt:   gameNow.Add(-time.Minute),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user2", PlayerId: "aup2_2", Color: ColorBlue},
 					{UserId: "active_user3", PlayerId: "aup2_3", Color: ColorYellow},
 				},
@@ -554,7 +560,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "au3",
 				SpectatorId: "sau3",
 				ExpiresAt:   gameNow.Add(-time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_user3", PlayerId: "aup3_3", Color: ColorBlue},
 					{UserId: "active_user4", PlayerId: "aup3_4", Color: ColorYellow},
 				},
@@ -656,7 +662,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag1",
 				SpectatorId: "sgag1",
 				ExpiresAt:   now.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user1", PlayerId: "agagp1_1", Color: ColorBlue},
 					{UserId: "active_game_user2", PlayerId: "agagp1_2", Color: ColorRed},
 				},
@@ -665,7 +671,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag2",
 				SpectatorId: "sgag2",
 				ExpiresAt:   now.Add(time.Hour),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user3", PlayerId: "agagp2_3", Color: ColorBlue},
 					{UserId: "active_game_user2", PlayerId: "agagp2_2", Color: ColorRed},
 				},
@@ -674,7 +680,7 @@ func TestStorage_Users(t *testing.T) {
 				GameId:      "gag3",
 				SpectatorId: "sgag3",
 				ExpiresAt:   now.Add(-time.Minute),
-				Players: []*Player{
+				Players: []Player{
 					{UserId: "active_game_user1", PlayerId: "agagp3_1", Color: ColorBlue},
 					{UserId: "active_game_user4", PlayerId: "agagp3_4", Color: ColorRed},
 				},
@@ -712,7 +718,7 @@ func TestStorage_Users(t *testing.T) {
 				"active_game_user1", "active_game_user2", "active_game_user3",
 			})
 
-			err = storage.UpdateGameResults(ctx, "gag1", GameResults{Raw: map[string]any{
+			err = storage.UpdateGameResults(ctx, "gag1", &GameResults{Raw: map[string]any{
 				"some data": 42,
 			}})
 			assert.NilError(t, err)
@@ -743,5 +749,81 @@ func TestStorage_Users(t *testing.T) {
 				"active_game_user2", "active_game_user3",
 			})
 		})
+	})
+
+	t.Run("UpdateElo", func(t *testing.T) {
+		now := time.Now().Truncate(time.Second).Add(-1 * time.Hour)
+		storage.nowFunc = func() time.Time { return now }
+
+		for _, u := range []UpsertUser{
+			{UserId: "update elo 1", Nickname: "update elo player 1"},
+			{UserId: "update elo 2", Nickname: "update elo player 2"},
+			{UserId: "update elo 3", Nickname: "update elo player 3"},
+		} {
+			err := storage.UpsertUser(ctx, u)
+			assert.NilError(t, err)
+		}
+
+		err := storage.CreateGame(ctx, &Game{
+			GameId:      "update elo 1",
+			SpectatorId: "spec update elo 1",
+			ExpiresAt:   now.Add(time.Hour),
+			Players: []Player{
+				{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
+				{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
+				{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+			},
+		})
+		assert.NilError(t, err)
+
+		err = storage.UpdateGameResults(ctx, "update elo 1", &GameResults{Raw: map[string]any{
+			"some data": 42,
+		}})
+		assert.NilError(t, err)
+
+		err = storage.UpdateElo(ctx, func(ctx context.Context, state EloUpdateState) (EloResults, error) {
+			assert.DeepEqual(t, EloUpdateState{
+				Game: Game{
+					GameId:      "update elo 1",
+					SpectatorId: "spec update elo 1",
+					CreatedAt:   now,
+					ExpiresAt:   now.Add(time.Hour),
+					Players: []Player{
+						{UserId: "update elo 1", PlayerId: "update elo player 1 1", Color: ColorBlue},
+						{UserId: "update elo 2", PlayerId: "update elo player 1 2", Color: ColorRed},
+						{UserId: "update elo 3", PlayerId: "update elo player 1 3", Color: ColorBronze},
+					},
+					GameResults: &GameResults{Raw: map[string]any{
+						"some data": float64(42),
+					}},
+				},
+				Users: []EloStateUser{
+					{UserId: "update elo 1", Elo: 1000},
+					{UserId: "update elo 2", Elo: 1000},
+					{UserId: "update elo 3", Elo: 1000},
+				},
+			}, state)
+			return EloResults{
+				Players: []EloResultsPlayer{
+					{UserId: "update elo 1", PlayerId: "update elo player 1 1", OldElo: 1000, NewElo: 1010},
+					{UserId: "update elo 2", PlayerId: "update elo player 1 2", OldElo: 1000, NewElo: 1000},
+					{UserId: "update elo 3", PlayerId: "update elo player 1 3", OldElo: 1000, NewElo: 985},
+				},
+			}, nil
+		})
+		assert.NilError(t, err)
+
+		for _, u := range []struct {
+			userId      string
+			expectedElo int64
+		}{
+			{userId: "update elo 1", expectedElo: 1010},
+			{userId: "update elo 2", expectedElo: 1000},
+			{userId: "update elo 3", expectedElo: 985},
+		} {
+			got, err := storage.GetUserById(ctx, u.userId)
+			assert.NilError(t, err)
+			assert.Equal(t, u.expectedElo, got.Elo)
+		}
 	})
 }

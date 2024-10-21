@@ -45,6 +45,7 @@ type User struct {
 	DeviceTokenType DeviceTokenType
 	LastIp          string
 	Type            UserType
+	Elo             int64
 }
 
 type Game struct {
@@ -52,7 +53,8 @@ type Game struct {
 	SpectatorId string
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
-	Players     []*Player
+	Players     []Player
+	GameResults *GameResults
 }
 
 type Player struct {
@@ -72,6 +74,39 @@ type UserNotificationState struct {
 }
 
 type SentNotificationUpdater func(ctx context.Context, state UserNotificationState) (UserNotificationState, error)
+
+type EloResultsPlayer struct {
+	PlayerId string
+	UserId   string
+	OldElo   int64
+	NewElo   int64
+}
+
+type EloResultsPair struct {
+	LeftPlayerId    string
+	RightPlayerId   string
+	LeftPlayerElo   int64
+	RightPlayerElo  int64
+	LeftEloDelta    int64
+	LeftPlayerScore float64
+}
+
+type EloResults struct {
+	Pairs   []EloResultsPair
+	Players []EloResultsPlayer
+}
+
+type EloStateUser struct {
+	UserId string
+	Elo    int64
+}
+
+type EloUpdateState struct {
+	Game  Game
+	Users []EloStateUser
+}
+
+type EloUpdater func(ctx context.Context, state EloUpdateState) (EloResults, error)
 
 func (sn *SentNotification) Value() (driver.Value, error) {
 	return json.Marshal(sn)
@@ -96,7 +131,11 @@ type GameResults struct {
 }
 
 func (r *GameResults) Value() (driver.Value, error) {
-	return json.Marshal(r.Raw)
+	v, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("marshal GameResults failed: %v", err)
+	}
+	return v, nil
 }
 
 func (r *GameResults) Scan(value interface{}) error {
@@ -110,5 +149,23 @@ func (r *GameResults) Scan(value interface{}) error {
 		return fmt.Errorf("type assertion to []byte failed")
 	}
 
-	return json.Unmarshal(b, &r.Raw)
+	return json.Unmarshal(b, r)
+}
+
+func (er *EloResults) Value() (driver.Value, error) {
+	return json.Marshal(er)
+}
+
+func (er *EloResults) Scan(value interface{}) error {
+	if value == nil {
+		*er = EloResults{}
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &er)
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
-func (s *Service) Run(ctx context.Context) error {
+func (s *Service) ProcessFinishedGames(ctx context.Context) error {
 	for {
 		games := s.getGamesToProcess(ctx)
 		for _, g := range games {
@@ -49,7 +49,7 @@ func (s *Service) processGame(ctx context.Context, game *storage.Game) error {
 	}
 
 	if r.Game.HasFinished {
-		if err := s.storage.UpdateGameResults(ctx, game.GameId, storage.GameResults{Raw: r.Raw}); err != nil {
+		if err := s.storage.UpdateGameResults(ctx, game.GameId, &storage.GameResults{Raw: r.Raw}); err != nil {
 			return fmt.Errorf("failed to update game results: %s: %w", game.GameId, err)
 		}
 		logx.Logger(ctx).Info("game finished", slog.String("id", game.GameId))

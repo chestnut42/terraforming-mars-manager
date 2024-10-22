@@ -317,6 +317,16 @@
     }
   },
   "definitions": {
+    "CreateGameBoard": {
+      "type": "string",
+      "enum": [
+        "RANDOM",
+        "THARSIS",
+        "HELLAS",
+        "ELYSIUM"
+      ],
+      "default": "RANDOM"
+    },
     "apiCreateGameRequest": {
       "type": "object",
       "properties": {
@@ -325,6 +335,21 @@
           "items": {
             "type": "string"
           }
+        },
+        "board": {
+          "$ref": "#/definitions/CreateGameBoard"
+        },
+        "corporateEra": {
+          "type": "boolean"
+        },
+        "prelude": {
+          "type": "boolean"
+        },
+        "venusNext": {
+          "type": "boolean"
+        },
+        "solarPhase": {
+          "type": "boolean"
         }
       }
     },

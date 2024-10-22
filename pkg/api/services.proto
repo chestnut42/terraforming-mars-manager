@@ -168,8 +168,20 @@ service Games {
 
 
 message CreateGame {
+  enum Board {
+    RANDOM = 0;
+    THARSIS = 1;
+    HELLAS = 2;
+    ELYSIUM = 3;
+  }
+
   message Request {
     repeated string players = 1;
+    Board board = 2;
+    bool corporate_era = 3;
+    bool prelude = 4;
+    bool venus_next = 5;
+    bool solar_phase = 6;
   }
 
   message Response {}

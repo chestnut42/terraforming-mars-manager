@@ -3,12 +3,14 @@ package app
 import (
 	"context"
 	"errors"
+	"math/rand/v2"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 	"github.com/chestnut42/terraforming-mars-manager/pkg/api"
 )
@@ -53,7 +55,13 @@ func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "too many players: %d", len(users))
 	}
 
-	if err := s.game.CreateGame(ctx, users); err != nil {
+	if err := s.game.CreateGame(ctx, users, mars.GameSettings{
+		Board:        boardFromAPI(req.GetBoard()),
+		CorporateEra: req.GetCorporateEra(),
+		Prelude:      req.GetPrelude(),
+		VenusNext:    req.GetVenusNext(),
+		SolarPhase:   req.GetSolarPhase(),
+	}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &api.CreateGame_Response{}, nil
@@ -101,4 +109,17 @@ func isUnique(str []string) bool {
 		m[v] = struct{}{}
 	}
 	return len(m) == len(str)
+}
+
+func boardFromAPI(board api.CreateGame_Board) mars.Board {
+	switch board {
+	case api.CreateGame_THARSIS:
+		return mars.BoardTharsis
+	case api.CreateGame_HELLAS:
+		return mars.BoardHellas
+	case api.CreateGame_ELYSIUM:
+		return mars.BoardElysium
+	default:
+		return mars.AllBoards[rand.IntN(len(mars.AllBoards))]
+	}
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
-func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
+func (s *Service) CreateGame(ctx context.Context, users []*storage.User, settings mars.GameSettings) error {
 	reqPlayers := make([]mars.NewPlayer, len(users))
 	for i, p := range users {
 		reqPlayers[i] = mars.NewPlayer{
@@ -18,7 +18,10 @@ func (s *Service) CreateGame(ctx context.Context, users []*storage.User) error {
 			Color: p.Color,
 		}
 	}
-	resp, err := s.mars.CreateGame(ctx, mars.CreateGameRequest{Players: reqPlayers})
+	resp, err := s.mars.CreateGame(ctx, mars.CreateGameRequest{
+		Players:  reqPlayers,
+		Settings: settings,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create mars client game: %w", err)
 	}

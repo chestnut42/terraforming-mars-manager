@@ -19,8 +19,17 @@ type NewPlayer struct {
 	Color storage.Color
 }
 
+type GameSettings struct {
+	Board        Board
+	CorporateEra bool
+	Prelude      bool
+	VenusNext    bool
+	SolarPhase   bool
+}
+
 type CreateGameRequest struct {
-	Players []NewPlayer
+	Players  []NewPlayer
+	Settings GameSettings
 }
 
 type CreateGameResponse struct {
@@ -33,6 +42,11 @@ type CreateGameResponse struct {
 func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (CreateGameResponse, error) {
 	req := defaultCreateGame()
 	req.Players = requestPlayers(game.Players)
+	req.Board = game.Settings.Board
+	req.CorporateEra = game.Settings.CorporateEra
+	req.Prelude = game.Settings.Prelude
+	req.VenusNext = game.Settings.VenusNext
+	req.SolarPhaseOption = game.Settings.SolarPhase
 
 	reqData, err := json.Marshal(req)
 	if err != nil {
@@ -129,7 +143,7 @@ func defaultCreateGame() createGame {
 		CustomPreludes:            make([]any, 0),
 		BannedCards:               make([]any, 0),
 		IncludedCards:             make([]any, 0),
-		Board:                     "tharsis",
+		Board:                     BoardTharsis,
 		Seed:                      rand.Float32(),
 		PoliticalAgendasExtension: "Standard",
 		UndoOption:                true,
@@ -141,6 +155,20 @@ func defaultCreateGame() createGame {
 		CustomCeos:                make([]any, 0),
 		StartingCeos:              3,
 	}
+}
+
+type Board string
+
+const (
+	BoardTharsis Board = "tharsis"
+	BoardHellas  Board = "hellas"
+	BoardElysium Board = "elysium"
+)
+
+var AllBoards = []Board{
+	BoardTharsis,
+	BoardHellas,
+	BoardElysium,
 }
 
 type newPlayer struct {
@@ -157,7 +185,7 @@ type createGame struct {
 	VenusNext         bool        `json:"venusNext"`
 	Colonies          bool        `json:"colonies"`
 	Turmoil           bool        `json:"turmoil"`
-	Board             string      `json:"board"`
+	Board             Board       `json:"board"`
 	Seed              float32     `json:"seed"`
 	RandomFirstPlayer bool        `json:"randomFirstPlayer"`
 

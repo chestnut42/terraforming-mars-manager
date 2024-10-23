@@ -301,8 +301,9 @@ var Users_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Games_CreateGame_FullMethodName = "/api.Games/CreateGame"
-	Games_GetGames_FullMethodName   = "/api.Games/GetGames"
+	Games_CreateGame_FullMethodName   = "/api.Games/CreateGame"
+	Games_CreateGameV2_FullMethodName = "/api.Games/CreateGameV2"
+	Games_GetGames_FullMethodName     = "/api.Games/GetGames"
 )
 
 // GamesClient is the client API for Games service.
@@ -310,6 +311,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GamesClient interface {
 	CreateGame(ctx context.Context, in *CreateGame_Request, opts ...grpc.CallOption) (*CreateGame_Response, error)
+	CreateGameV2(ctx context.Context, in *CreateGameV2_Request, opts ...grpc.CallOption) (*CreateGameV2_Response, error)
 	GetGames(ctx context.Context, in *GetGames_Request, opts ...grpc.CallOption) (*GetGames_Response, error)
 }
 
@@ -331,6 +333,16 @@ func (c *gamesClient) CreateGame(ctx context.Context, in *CreateGame_Request, op
 	return out, nil
 }
 
+func (c *gamesClient) CreateGameV2(ctx context.Context, in *CreateGameV2_Request, opts ...grpc.CallOption) (*CreateGameV2_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGameV2_Response)
+	err := c.cc.Invoke(ctx, Games_CreateGameV2_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gamesClient) GetGames(ctx context.Context, in *GetGames_Request, opts ...grpc.CallOption) (*GetGames_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetGames_Response)
@@ -346,6 +358,7 @@ func (c *gamesClient) GetGames(ctx context.Context, in *GetGames_Request, opts .
 // for forward compatibility
 type GamesServer interface {
 	CreateGame(context.Context, *CreateGame_Request) (*CreateGame_Response, error)
+	CreateGameV2(context.Context, *CreateGameV2_Request) (*CreateGameV2_Response, error)
 	GetGames(context.Context, *GetGames_Request) (*GetGames_Response, error)
 	mustEmbedUnimplementedGamesServer()
 }
@@ -356,6 +369,9 @@ type UnimplementedGamesServer struct {
 
 func (UnimplementedGamesServer) CreateGame(context.Context, *CreateGame_Request) (*CreateGame_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
+}
+func (UnimplementedGamesServer) CreateGameV2(context.Context, *CreateGameV2_Request) (*CreateGameV2_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGameV2 not implemented")
 }
 func (UnimplementedGamesServer) GetGames(context.Context, *GetGames_Request) (*GetGames_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGames not implemented")
@@ -391,6 +407,24 @@ func _Games_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Games_CreateGameV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGameV2_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamesServer).CreateGameV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Games_CreateGameV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamesServer).CreateGameV2(ctx, req.(*CreateGameV2_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Games_GetGames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGames_Request)
 	if err := dec(in); err != nil {
@@ -419,6 +453,10 @@ var Games_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateGame",
 			Handler:    _Games_CreateGame_Handler,
+		},
+		{
+			MethodName: "CreateGameV2",
+			Handler:    _Games_CreateGameV2_Handler,
 		},
 		{
 			MethodName: "GetGames",

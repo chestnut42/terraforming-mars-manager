@@ -155,6 +155,16 @@ service Games {
       security: { security_requirement { key: "Bearer" }}
     };
   }
+  rpc CreateGameV2(CreateGameV2.Request) returns (CreateGameV2.Response) {
+    option (google.api.http) = {
+      post: "/manager/api/v2/game"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      security: { security_requirement { key: "Bearer" }}
+    };
+  }
+
   rpc GetGames(GetGames.Request) returns (GetGames.Response) {
     option (google.api.http) = {
       get: "/manager/api/v1/me/games"
@@ -168,6 +178,14 @@ service Games {
 
 
 message CreateGame {
+  message Request {
+    repeated string players = 1;
+  }
+
+  message Response {}
+}
+
+message CreateGameV2 {
   enum Board {
     RANDOM = 0;
     THARSIS = 1;

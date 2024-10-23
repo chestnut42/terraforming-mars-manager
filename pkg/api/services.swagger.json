@@ -314,10 +314,51 @@
           }
         ]
       }
+    },
+    "/manager/api/v2/game": {
+      "post": {
+        "operationId": "Games_CreateGameV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCreateGameV2Response"
+            }
+          },
+          "401": {
+            "description": "You have provided no authorization token or the token provided is invalid.",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCreateGameV2Request"
+            }
+          }
+        ],
+        "tags": [
+          "Games"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
     }
   },
   "definitions": {
-    "CreateGameBoard": {
+    "CreateGameV2Board": {
       "type": "string",
       "enum": [
         "RANDOM",
@@ -335,9 +376,23 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "apiCreateGameResponse": {
+      "type": "object"
+    },
+    "apiCreateGameV2Request": {
+      "type": "object",
+      "properties": {
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "board": {
-          "$ref": "#/definitions/CreateGameBoard"
+          "$ref": "#/definitions/CreateGameV2Board"
         },
         "corporateEra": {
           "type": "boolean"
@@ -353,7 +408,7 @@
         }
       }
     },
-    "apiCreateGameResponse": {
+    "apiCreateGameV2Response": {
       "type": "object"
     },
     "apiGame": {

@@ -16,18 +16,54 @@ import (
 )
 
 func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (*api.CreateGame_Response, error) {
+	users, err := s.getPlayers(ctx, req.GetPlayers())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.game.CreateGame(ctx, users, mars.GameSettings{
+		Board:        mars.BoardTharsis,
+		CorporateEra: true,
+		Prelude:      true,
+		VenusNext:    true,
+		SolarPhase:   false,
+	}); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &api.CreateGame_Response{}, nil
+}
+
+func (s *Service) CreateGameV2(ctx context.Context, req *api.CreateGameV2_Request) (*api.CreateGameV2_Response, error) {
+	users, err := s.getPlayers(ctx, req.GetPlayers())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.game.CreateGame(ctx, users, mars.GameSettings{
+		Board:        boardFromAPIV2(req.GetBoard()),
+		CorporateEra: req.GetCorporateEra(),
+		Prelude:      req.GetPrelude(),
+		VenusNext:    req.GetVenusNext(),
+		SolarPhase:   req.GetSolarPhase(),
+	}); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &api.CreateGameV2_Response{}, nil
+}
+
+func (s *Service) getPlayers(ctx context.Context, players []string) ([]*storage.User, error) {
 	thisUser, ok := auth.UserFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
 	// Check if all users are unique
-	if !isUnique(req.GetPlayers()) {
+	if !isUnique(players) {
 		return nil, status.Error(codes.InvalidArgument, "players are not unique")
 	}
 
-	users := make([]*storage.User, len(req.GetPlayers()))
-	for i, player := range req.GetPlayers() {
+	users := make([]*storage.User, len(players))
+	for i, player := range players {
 		u, err := s.storage.GetUserByNickname(ctx, player)
 		if err != nil {
 			if errors.Is(err, storage.ErrNotFound) {
@@ -54,17 +90,7 @@ func (s *Service) CreateGame(ctx context.Context, req *api.CreateGame_Request) (
 	if len(users) > 5 {
 		return nil, status.Errorf(codes.InvalidArgument, "too many players: %d", len(users))
 	}
-
-	if err := s.game.CreateGame(ctx, users, mars.GameSettings{
-		Board:        boardFromAPI(req.GetBoard()),
-		CorporateEra: req.GetCorporateEra(),
-		Prelude:      req.GetPrelude(),
-		VenusNext:    req.GetVenusNext(),
-		SolarPhase:   req.GetSolarPhase(),
-	}); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	return &api.CreateGame_Response{}, nil
+	return users, nil
 }
 
 func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api.GetGames_Response, error) {
@@ -111,13 +137,13 @@ func isUnique(str []string) bool {
 	return len(m) == len(str)
 }
 
-func boardFromAPI(board api.CreateGame_Board) mars.Board {
+func boardFromAPIV2(board api.CreateGameV2_Board) mars.Board {
 	switch board {
-	case api.CreateGame_THARSIS:
+	case api.CreateGameV2_THARSIS:
 		return mars.BoardTharsis
-	case api.CreateGame_HELLAS:
+	case api.CreateGameV2_HELLAS:
 		return mars.BoardHellas
-	case api.CreateGame_ELYSIUM:
+	case api.CreateGameV2_ELYSIUM:
 		return mars.BoardElysium
 	default:
 		return mars.AllBoards[rand.IntN(len(mars.AllBoards))]

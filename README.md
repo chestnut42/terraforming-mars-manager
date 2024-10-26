@@ -4,9 +4,6 @@ Terraforming Mars Manager provides API to create and manage
 player accounts for the [Terraforing Mars Open-source](https://github.com/terraforming-mars/terraforming-mars)
 project. **It is not affiliated with FryxGames, Asmodee Digital or Steam in any way.**
 
-Terraforming Mars Manager is also **not affiliated** with aforementioned 
-[Terraforing Mars Open-source](https://github.com/terraforming-mars/terraforming-mars).
-
 ## Why?
 
 1. Accounts. Create an account and keep all your games saved in one place. No

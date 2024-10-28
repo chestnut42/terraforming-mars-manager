@@ -91,7 +91,7 @@ func main() {
 		SandboxNotifier: sandboxApnSvc,
 		ProdNotifier:    prodApnSvc,
 	})
-	interceptorSvc := interceptor.NewService(originProxy, storageSvc, marsSvc, notifySvc)
+	interceptorSvc := interceptor.NewService(originProxy, storageSvc, marsSvc, notifySvc, gameSvc)
 
 	grpcMux := runtime.NewServeMux()
 	err = api.RegisterUsersHandlerServer(ctx, grpcMux, appSvc)

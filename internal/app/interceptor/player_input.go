@@ -72,6 +72,16 @@ func (s *Service) getStateWatcher(r *http.Request) (func() error, error) {
 				}
 			}
 		}
+
+		marsGame, err := s.mars.GetGame(ctx, mars.GetGameRequest{SpectatorId: game.SpectatorId})
+		if err != nil {
+			return fmt.Errorf("failed to get game from mars %s: %w", game.SpectatorId, err)
+		}
+		if marsGame.Game.HasFinished {
+			if err := s.gameNotifier.NotifyGameFinished(ctx, game.GameId); err != nil {
+				return fmt.Errorf("failed to notify game %s: %w", game.GameId, err)
+			}
+		}
 		return nil
 	}, nil
 }

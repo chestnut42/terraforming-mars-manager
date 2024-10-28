@@ -31,6 +31,8 @@ type Service struct {
 	cfg     Config
 	storage Storage
 	mars    MarsClient
+
+	finishedGames chan string
 }
 
 func NewService(cfg Config, storage Storage, mars MarsClient) *Service {
@@ -38,5 +40,7 @@ func NewService(cfg Config, storage Storage, mars MarsClient) *Service {
 		cfg:     cfg,
 		storage: storage,
 		mars:    mars,
+
+		finishedGames: make(chan string),
 	}
 }

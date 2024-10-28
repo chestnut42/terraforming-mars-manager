@@ -75,9 +75,11 @@ func New(db *sql.DB) (*Storage, error) {
 
 	getGamesByUserId, err := db.Prepare(`
 		SELECT manager_games.id, manager_games.spectator_id, manager_games.created_at, manager_games.expires_at,
+		       manager_games.finished_at,
 		       manager_game_players.user_id, manager_game_players.player_id, manager_game_players.color
 			FROM manager_game_players INNER JOIN manager_games ON manager_game_players.game_id = manager_games.id
-			WHERE manager_game_players.user_id = $1 AND manager_games.expires_at > $2
+			WHERE manager_game_players.user_id = $1 AND manager_games.expires_at > $2 
+			  	AND coalesce(manager_games.finished_at, 'infinity') > $3
 			ORDER BY manager_games.created_at DESC
 	`)
 	if err != nil {
@@ -373,9 +375,9 @@ func (s *Storage) CreateGame(ctx context.Context, game *Game) error {
 	return nil
 }
 
-func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game, error) {
+func (s *Storage) GetGamesByUserId(ctx context.Context, userId string, finishedWindow time.Duration) ([]*Game, error) {
 	now := s.nowFunc()
-	rows, err := s.getGamesByUserId.QueryContext(ctx, userId, now)
+	rows, err := s.getGamesByUserId.QueryContext(ctx, userId, now, now.Add(-finishedWindow))
 	if err != nil {
 		return nil, fmt.Errorf("failed to query getGamesByUserId: %w", err)
 	}
@@ -386,7 +388,7 @@ func (s *Storage) GetGamesByUserId(ctx context.Context, userId string) ([]*Game,
 		game := Game{}
 		player := Player{}
 
-		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt,
+		if err := rows.Scan(&game.GameId, &game.SpectatorId, &game.CreatedAt, &game.ExpiresAt, &game.FinishedAt,
 			&player.UserId, &player.PlayerId, &player.Color); err != nil {
 			return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 		}

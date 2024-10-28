@@ -474,12 +474,27 @@ func TestStorage_Users(t *testing.T) {
 					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
 				},
 			},
+			{ // Finished game
+				GameId:      "gbu5",
+				SpectatorId: "sbu5",
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user1", PlayerId: "p5_1", Color: ColorBlue},
+					{UserId: "game_by_user3", PlayerId: "p5_3", Color: ColorYellow},
+					{UserId: "game_by_user2", PlayerId: "p5_2", Color: ColorBronze},
+				},
+			},
 		} {
 			err := storage.CreateGame(ctx, g)
 			assert.NilError(t, err)
 		}
 
-		got, err := storage.GetGamesByUserId(ctx, "game_by_user2")
+		finishTime := gameNow.Add(-time.Hour)
+		storage.nowFunc = func() time.Time { return finishTime }
+		err = storage.UpdateGameResults(ctx, "gbu5", nil)
+		storage.nowFunc = func() time.Time { return gameNow }
+
+		got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Minute)
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, []*Game{
 			{

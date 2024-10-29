@@ -12,6 +12,15 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
 
+func (s *Service) NotifyGameFinished(ctx context.Context, gameId string) error {
+	select {
+	case s.finishedGames <- gameId:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (s *Service) ProcessFinishedGames(ctx context.Context) error {
 	for {
 		games := s.getGamesToProcess(ctx)
@@ -27,6 +36,8 @@ func (s *Service) ProcessFinishedGames(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(s.cfg.ScanInterval):
+		case <-s.finishedGames:
+			// Here we can just use this gameId to update a specific game
 		}
 	}
 }

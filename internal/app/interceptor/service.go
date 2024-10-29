@@ -13,6 +13,7 @@ type Storage interface {
 }
 
 type MarsClient interface {
+	GetGame(ctx context.Context, req mars.GetGameRequest) (mars.GetGameResponse, error)
 	WaitingFor(ctx context.Context, req mars.WaitingForRequest) (mars.WaitingForResponse, error)
 }
 
@@ -20,18 +21,24 @@ type Notifier interface {
 	NotifyUser(ctx context.Context, userId string) error
 }
 
-type Service struct {
-	origin   http.Handler
-	storage  Storage
-	mars     MarsClient
-	notifier Notifier
+type GameNotifier interface {
+	NotifyGameFinished(ctx context.Context, gameId string) error
 }
 
-func NewService(origin http.Handler, storage Storage, mars MarsClient, notifier Notifier) *Service {
+type Service struct {
+	origin       http.Handler
+	storage      Storage
+	mars         MarsClient
+	notifier     Notifier
+	gameNotifier GameNotifier
+}
+
+func NewService(origin http.Handler, storage Storage, mars MarsClient, notifier Notifier, gameNotifier GameNotifier) *Service {
 	return &Service{
-		origin:   origin,
-		storage:  storage,
-		mars:     mars,
-		notifier: notifier,
+		origin:       origin,
+		storage:      storage,
+		mars:         mars,
+		notifier:     notifier,
+		gameNotifier: gameNotifier,
 	}
 }

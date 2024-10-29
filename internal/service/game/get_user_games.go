@@ -30,6 +30,11 @@ func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGam
 	awaitInputs := make([]bool, len(games))
 	eg, ctx := errgroup.WithContext(inctx)
 	for idx, game := range games {
+		if game.FinishedAt != nil {
+			// Input can't be awaited
+			continue
+		}
+
 		idx := idx
 		game := game
 

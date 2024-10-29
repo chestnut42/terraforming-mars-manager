@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
@@ -107,29 +108,77 @@ func TestStorage_GetGamesByUserId(t *testing.T) {
 	finishTime := gameNow.Add(-time.Hour)
 	storage.nowFunc = func() time.Time { return finishTime }
 	err := storage.UpdateGameResults(ctx, "gbu5", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	storage.nowFunc = func() time.Time { return gameNow }
 
-	got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Minute)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, got, []*Game{
-		{
-			GameId:      "gbu1",
-			SpectatorId: "sbu1",
-			CreatedAt:   gameNow,
-			ExpiresAt:   gameNow.Add(time.Hour),
-			Players: []Player{
-				{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+	t.Run("filter out finished game", func(t *testing.T) {
+		got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Minute)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(got, []*Game{
+			{
+				GameId:      "gbu1",
+				SpectatorId: "sbu1",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+				},
 			},
-		},
-		{
-			GameId:      "gbu4",
-			SpectatorId: "sbu4",
-			CreatedAt:   gameNow,
-			ExpiresAt:   gameNow.Add(time.Hour),
-			Players: []Player{
-				{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+			{
+				GameId:      "gbu4",
+				SpectatorId: "sbu4",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+				},
 			},
-		},
+		}); diff != "" {
+			t.Errorf("GetGamesByUserId (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("query finished game", func(t *testing.T) {
+		got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Hour*2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(got, []*Game{
+			{
+				GameId:      "gbu1",
+				SpectatorId: "sbu1",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+				},
+			},
+			{
+				GameId:      "gbu4",
+				SpectatorId: "sbu4",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+				},
+			},
+			{
+				GameId:      "gbu5",
+				SpectatorId: "sbu5",
+				CreatedAt:   gameNow,
+				ExpiresAt:   gameNow.Add(time.Hour),
+				Players: []Player{
+					{UserId: "game_by_user2", PlayerId: "p5_2", Color: ColorBronze},
+				},
+				FinishedAt: &finishTime,
+			},
+		}); diff != "" {
+			t.Errorf("GetGamesByUserId (-want +got):\n%s", diff)
+		}
 	})
 
 	t.Run("GetGameByPlayerId", func(t *testing.T) {

@@ -10,6 +10,8 @@ import (
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
 )
 
+const finishedWindow = 7 * 24 * time.Hour
+
 type UserGame struct {
 	PlayURL      string
 	CreatedAt    time.Time
@@ -20,7 +22,7 @@ type UserGame struct {
 }
 
 func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGame, error) {
-	games, err := s.storage.GetGamesByUserId(inctx, userId)
+	games, err := s.storage.GetGamesByUserId(inctx, userId, finishedWindow)
 	if err != nil {
 		return nil, fmt.Errorf("get games from storage: %w", err)
 	}
@@ -28,6 +30,11 @@ func (s *Service) GetUserGames(inctx context.Context, userId string) ([]*UserGam
 	awaitInputs := make([]bool, len(games))
 	eg, ctx := errgroup.WithContext(inctx)
 	for idx, game := range games {
+		if game.FinishedAt != nil {
+			// Input can't be awaited
+			continue
+		}
+
 		idx := idx
 		game := game
 

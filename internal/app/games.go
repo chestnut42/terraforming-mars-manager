@@ -93,7 +93,7 @@ func (s *Service) getPlayers(ctx context.Context, players []string) ([]*storage.
 	return users, nil
 }
 
-func (s *Service) GetGames(ctx context.Context, req *api.GetGames_Request) (*api.GetGames_Response, error) {
+func (s *Service) GetGames(ctx context.Context, _ *api.GetGames_Request) (*api.GetGames_Response, error) {
 	thisUser, ok := auth.UserFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user not found")

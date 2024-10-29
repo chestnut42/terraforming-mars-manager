@@ -53,6 +53,7 @@ type Game struct {
 	SpectatorId string
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
+	FinishedAt  *time.Time
 	Players     []Player
 	GameResults *GameResults
 }

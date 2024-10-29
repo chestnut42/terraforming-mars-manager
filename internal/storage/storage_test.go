@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -9,6 +11,23 @@ import (
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 )
+
+const (
+	defaultDatabase = "postgres"
+)
+
+func TestMigrations(t *testing.T) {
+	db, err := database.PrepareDB(getDSN(defaultDatabase))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	_, err = New(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestStorage_Users(t *testing.T) {
 	db, err := database.PrepareDB("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
@@ -841,4 +860,40 @@ func TestStorage_Users(t *testing.T) {
 			}, got)
 		})
 	})
+}
+
+func prepareStorage(t *testing.T) *Storage {
+	const (
+		prepareTimeout = time.Second * 10
+	)
+
+	mainDB, err := sql.Open("pgx", getDSN(defaultDatabase))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), prepareTimeout)
+	defer cancel()
+
+	newDBName := t.Name()
+	_, err = mainDB.ExecContext(ctx, "CREATE DATABASE $1", newDBName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := database.PrepareDB(getDSN(newDBName))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := New(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return s
+}
+
+func getDSN(name string) string {
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:5432/%s?sslmode=disable", name)
 }

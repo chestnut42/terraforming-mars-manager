@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,8 @@ const (
 )
 
 func TestMigrations(t *testing.T) {
+	t.Parallel()
+
 	db, err := database.PrepareDB(getDSN(defaultDatabase))
 	if err != nil {
 		t.Fatal(err)
@@ -29,14 +32,127 @@ func TestMigrations(t *testing.T) {
 	}
 }
 
-func TestStorage_Users(t *testing.T) {
-	db, err := database.PrepareDB("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
-	assert.NilError(t, err)
-	defer db.Close()
+func TestStorage_GetGamesByUserId(t *testing.T) {
+	t.Parallel()
 
-	storage, err := New(db)
-	assert.NilError(t, err)
+	storage := prepareStorage(t)
+	ctx := context.Background()
 
+	gameNow := time.Now().Truncate(time.Second)
+	storage.nowFunc = func() time.Time { return gameNow }
+	for _, u := range []UpsertUser{
+		{UserId: "game_by_user1", Nickname: "game by user 1"},
+		{UserId: "game_by_user2", Nickname: "game by user 2"},
+		{UserId: "game_by_user3", Nickname: "game by user 3"},
+	} {
+		err := storage.UpsertUser(ctx, u)
+		assert.NilError(t, err)
+	}
+
+	for _, g := range []*Game{
+		{
+			GameId:      "gbu1",
+			SpectatorId: "sbu1",
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
+				{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+				{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
+			},
+		},
+		{
+			GameId:      "gbu2",
+			SpectatorId: "sbu2",
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p2_1", Color: ColorBlue},
+				{UserId: "game_by_user3", PlayerId: "p2_3", Color: ColorYellow},
+			},
+		},
+		{ // Expired game
+			GameId:      "gbu3",
+			SpectatorId: "sbu3",
+			ExpiresAt:   gameNow.Add(-time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p3_1", Color: ColorBlue},
+				{UserId: "game_by_user3", PlayerId: "p3_3", Color: ColorYellow},
+				{UserId: "game_by_user2", PlayerId: "p3_2", Color: ColorRed},
+			},
+		},
+		{
+			GameId:      "gbu4",
+			SpectatorId: "sbu4",
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p4_1", Color: ColorBlue},
+				{UserId: "game_by_user3", PlayerId: "p4_3", Color: ColorYellow},
+				{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+			},
+		},
+		{ // Finished game
+			GameId:      "gbu5",
+			SpectatorId: "sbu5",
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p5_1", Color: ColorBlue},
+				{UserId: "game_by_user3", PlayerId: "p5_3", Color: ColorYellow},
+				{UserId: "game_by_user2", PlayerId: "p5_2", Color: ColorBronze},
+			},
+		},
+	} {
+		err := storage.CreateGame(ctx, g)
+		assert.NilError(t, err)
+	}
+
+	finishTime := gameNow.Add(-time.Hour)
+	storage.nowFunc = func() time.Time { return finishTime }
+	err := storage.UpdateGameResults(ctx, "gbu5", nil)
+	storage.nowFunc = func() time.Time { return gameNow }
+
+	got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Minute)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, got, []*Game{
+		{
+			GameId:      "gbu1",
+			SpectatorId: "sbu1",
+			CreatedAt:   gameNow,
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+			},
+		},
+		{
+			GameId:      "gbu4",
+			SpectatorId: "sbu4",
+			CreatedAt:   gameNow,
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
+			},
+		},
+	})
+
+	t.Run("GetGameByPlayerId", func(t *testing.T) {
+		got, err := storage.GetGameByPlayerId(ctx, "p1_3")
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, &Game{
+			GameId:      "gbu1",
+			SpectatorId: "sbu1",
+			CreatedAt:   gameNow,
+			ExpiresAt:   gameNow.Add(time.Hour),
+			Players: []Player{
+				{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
+				{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
+				{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
+			},
+		})
+	})
+}
+
+func TestStorage(t *testing.T) {
+	t.Parallel()
+
+	storage := prepareStorage(t)
 	ctx := context.Background()
 
 	t.Run("Create/Get users", func(t *testing.T) {
@@ -253,11 +369,14 @@ func TestStorage_Users(t *testing.T) {
 			err := storage.UpsertUser(ctx, u)
 			assert.NilError(t, err)
 		}
-		_, err = storage.UpdateUser(ctx, UpdateUser{
+		_, err := storage.UpdateUser(ctx, UpdateUser{
 			UserId:   "search 4",
 			Nickname: "free middle nickname",
 			Type:     UserTypeActive,
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		tests := []struct {
 			name    string
@@ -439,118 +558,6 @@ func TestStorage_Users(t *testing.T) {
 				}
 			})
 		}
-	})
-
-	t.Run("GetGamesByUserId", func(t *testing.T) {
-		gameNow := time.Now().Truncate(time.Second)
-		storage.nowFunc = func() time.Time { return gameNow }
-		for _, u := range []UpsertUser{
-			{UserId: "game_by_user1", Nickname: "game by user 1"},
-			{UserId: "game_by_user2", Nickname: "game by user 2"},
-			{UserId: "game_by_user3", Nickname: "game by user 3"},
-		} {
-			err := storage.UpsertUser(ctx, u)
-			assert.NilError(t, err)
-		}
-
-		for _, g := range []*Game{
-			{
-				GameId:      "gbu1",
-				SpectatorId: "sbu1",
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
-					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
-					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
-				},
-			},
-			{
-				GameId:      "gbu2",
-				SpectatorId: "sbu2",
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p2_1", Color: ColorBlue},
-					{UserId: "game_by_user3", PlayerId: "p2_3", Color: ColorYellow},
-				},
-			},
-			{ // Expired game
-				GameId:      "gbu3",
-				SpectatorId: "sbu3",
-				ExpiresAt:   gameNow.Add(-time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p3_1", Color: ColorBlue},
-					{UserId: "game_by_user3", PlayerId: "p3_3", Color: ColorYellow},
-					{UserId: "game_by_user2", PlayerId: "p3_2", Color: ColorRed},
-				},
-			},
-			{
-				GameId:      "gbu4",
-				SpectatorId: "sbu4",
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p4_1", Color: ColorBlue},
-					{UserId: "game_by_user3", PlayerId: "p4_3", Color: ColorYellow},
-					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
-				},
-			},
-			{ // Finished game
-				GameId:      "gbu5",
-				SpectatorId: "sbu5",
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p5_1", Color: ColorBlue},
-					{UserId: "game_by_user3", PlayerId: "p5_3", Color: ColorYellow},
-					{UserId: "game_by_user2", PlayerId: "p5_2", Color: ColorBronze},
-				},
-			},
-		} {
-			err := storage.CreateGame(ctx, g)
-			assert.NilError(t, err)
-		}
-
-		finishTime := gameNow.Add(-time.Hour)
-		storage.nowFunc = func() time.Time { return finishTime }
-		err = storage.UpdateGameResults(ctx, "gbu5", nil)
-		storage.nowFunc = func() time.Time { return gameNow }
-
-		got, err := storage.GetGamesByUserId(ctx, "game_by_user2", time.Minute)
-		assert.NilError(t, err)
-		assert.DeepEqual(t, got, []*Game{
-			{
-				GameId:      "gbu1",
-				SpectatorId: "sbu1",
-				CreatedAt:   gameNow,
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
-				},
-			},
-			{
-				GameId:      "gbu4",
-				SpectatorId: "sbu4",
-				CreatedAt:   gameNow,
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user2", PlayerId: "p4_2", Color: ColorBronze},
-				},
-			},
-		})
-
-		t.Run("GetGameByPlayerId", func(t *testing.T) {
-			got, err := storage.GetGameByPlayerId(ctx, "p1_3")
-			assert.NilError(t, err)
-			assert.DeepEqual(t, got, &Game{
-				GameId:      "gbu1",
-				SpectatorId: "sbu1",
-				CreatedAt:   gameNow,
-				ExpiresAt:   gameNow.Add(time.Hour),
-				Players: []Player{
-					{UserId: "game_by_user1", PlayerId: "p1_1", Color: ColorBlue},
-					{UserId: "game_by_user2", PlayerId: "p1_2", Color: ColorRed},
-					{UserId: "game_by_user3", PlayerId: "p1_3", Color: ColorYellow},
-				},
-			})
-		})
 	})
 
 	t.Run("GetActiveUsers", func(t *testing.T) {
@@ -886,12 +893,13 @@ func prepareStorage(t *testing.T) *Storage {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mainDB.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), prepareTimeout)
 	defer cancel()
 
-	newDBName := t.Name()
-	_, err = mainDB.ExecContext(ctx, "CREATE DATABASE $1", newDBName)
+	newDBName := strings.ToLower(t.Name())
+	_, err = mainDB.ExecContext(ctx, "CREATE DATABASE "+newDBName)
 	if err != nil {
 		t.Fatal(err)
 	}

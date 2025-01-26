@@ -200,6 +200,7 @@ message CreateGameV2 {
     bool prelude = 4;
     bool venus_next = 5;
     bool solar_phase = 6;
+    bool colonies = 7;
   }
 
   message Response {}

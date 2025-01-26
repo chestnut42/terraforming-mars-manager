@@ -405,6 +405,9 @@
         },
         "solarPhase": {
           "type": "boolean"
+        },
+        "colonies": {
+          "type": "boolean"
         }
       }
     },

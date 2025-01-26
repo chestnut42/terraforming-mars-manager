@@ -25,6 +25,7 @@ type GameSettings struct {
 	Prelude      bool
 	VenusNext    bool
 	SolarPhase   bool
+	Colonies     bool
 }
 
 type CreateGameRequest struct {
@@ -47,6 +48,7 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (Creat
 	req.Prelude = game.Settings.Prelude
 	req.VenusNext = game.Settings.VenusNext
 	req.SolarPhaseOption = game.Settings.SolarPhase
+	req.Colonies = game.Settings.Colonies
 
 	reqData, err := json.Marshal(req)
 	if err != nil {

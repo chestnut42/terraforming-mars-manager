@@ -45,6 +45,7 @@ func (s *Service) CreateGameV2(ctx context.Context, req *api.CreateGameV2_Reques
 		Prelude:      req.GetPrelude(),
 		VenusNext:    req.GetVenusNext(),
 		SolarPhase:   req.GetSolarPhase(),
+		Colonies:     req.GetColonies(),
 	}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

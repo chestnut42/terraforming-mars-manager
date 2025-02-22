@@ -49,6 +49,12 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (Creat
 	req.VenusNext = game.Settings.VenusNext
 	req.SolarPhaseOption = game.Settings.SolarPhase
 	req.Colonies = game.Settings.Colonies
+	if game.Settings.VenusNext {
+		req.StartingCorporations += 1
+	}
+	if game.Settings.Colonies {
+		req.StartingCorporations += 1
+	}
 
 	reqData, err := json.Marshal(req)
 	if err != nil {
@@ -151,7 +157,7 @@ func defaultCreateGame() createGame {
 		UndoOption:                true,
 		ShowTimers:                true,
 		IncludeVenusMA:            true,
-		StartingCorporations:      3,
+		StartingCorporations:      2,
 		PreludeDraftVariant:       true,
 		RandomMA:                  "No randomization",
 		CustomCeos:                make([]any, 0),

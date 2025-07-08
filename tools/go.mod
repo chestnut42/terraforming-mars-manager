@@ -1,13 +1,15 @@
 module tools
 
-go 1.22
+go 1.23.0
+
+toolchain go1.23.5
 
 require (
-	github.com/gojuno/minimock/v3 v3.3.14
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0
-	github.com/hexdigest/gowrap v1.3.10
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
-	google.golang.org/protobuf v1.34.2
+	github.com/gojuno/minimock/v3 v3.4.5
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1
+	github.com/hexdigest/gowrap v1.4.2
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
@@ -27,14 +29,13 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240725223205-93522f1f2a9f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240725223205-93522f1f2a9f // indirect
-	google.golang.org/grpc v1.64.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	google.golang.org/grpc v1.73.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

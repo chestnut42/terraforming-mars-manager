@@ -48,7 +48,7 @@ func (s *Service) GetGame(ctx context.Context, req GetGameRequest) (GetGameRespo
 	if err != nil {
 		return GetGameResponse{}, fmt.Errorf("failed to send http request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() //nolint:errcheck
 
 	if err := httpx.CheckResponse(httpResp); err != nil {
 		return GetGameResponse{}, fmt.Errorf("failed to check http response: %w", err)

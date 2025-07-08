@@ -71,7 +71,7 @@ func (s *Service) CreateGame(ctx context.Context, game CreateGameRequest) (Creat
 	if err != nil {
 		return CreateGameResponse{}, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() //nolint:errcheck
 
 	if err := httpx.CheckResponse(httpResp); err != nil {
 		return CreateGameResponse{}, fmt.Errorf("invalid response: %w", err)

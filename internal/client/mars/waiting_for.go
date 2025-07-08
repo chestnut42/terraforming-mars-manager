@@ -36,7 +36,7 @@ func (s *Service) WaitingFor(ctx context.Context, req WaitingForRequest) (Waitin
 	if err != nil {
 		return WaitingForResponse{}, fmt.Errorf("failed to send http request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() //nolint:errcheck
 
 	if err := httpx.CheckResponse(httpResp); err != nil {
 		return WaitingForResponse{}, fmt.Errorf("invalid http response: %w", err)

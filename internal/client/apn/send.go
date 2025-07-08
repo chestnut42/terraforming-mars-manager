@@ -59,7 +59,7 @@ func (s *Service) SendNotification(ctx context.Context, device []byte, n Notific
 	if err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusBadRequest {
 		body, err := io.ReadAll(resp.Body)

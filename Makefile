@@ -1,7 +1,7 @@
 export GOBIN := $(PWD)/bin
 export PATH := $(GOBIN):$(PATH)
 
-GOLANGLINT_VERSION := 1.61.0
+GOLANGLINT_VERSION := 2.1.6
 PROTOC_VERSION := 28.2
 GOOGLE_API_COMMIT := 0fa9ce880be5ea7c3027015849cd4fbfb04812c5
 GRPC_GATEWAY_VERSION := $(shell cat go.mod | grep github.com/grpc-ecosystem/grpc-gateway/v2 | cut -w -f 3 | cut -c 2-)

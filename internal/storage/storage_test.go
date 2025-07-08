@@ -25,7 +25,7 @@ func TestMigrations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	_, err = New(db)
 	if err != nil {
@@ -942,7 +942,7 @@ func prepareStorage(t *testing.T) *Storage {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainDB.Close()
+	defer mainDB.Close() //nolint:errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), prepareTimeout)
 	defer cancel()

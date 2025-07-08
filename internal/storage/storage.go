@@ -281,7 +281,7 @@ func (s *Storage) SearchUsers(ctx context.Context, req SearchUsers) ([]*User, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	users := make([]*User, 0, req.Limit)
 	for rows.Next() {
@@ -381,7 +381,7 @@ func (s *Storage) GetGamesByUserId(ctx context.Context, userId string, finishedW
 	if err != nil {
 		return nil, fmt.Errorf("failed to query getGamesByUserId: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	games := make([]*Game, 0)
 	for rows.Next() {
@@ -409,7 +409,7 @@ func (s *Storage) GetGameByPlayerId(ctx context.Context, playerId string) (*Game
 	if err != nil {
 		return nil, fmt.Errorf("failed to query getGamesByUserId: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var game Game
 	for rows.Next() {
@@ -436,7 +436,7 @@ func (s *Storage) GetActiveUsers(ctx context.Context, activityBuffer time.Durati
 	if err != nil {
 		return nil, fmt.Errorf("failed to query getActiveUsers: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	activeUsers := make([]string, 0)
 	for rows.Next() {
@@ -490,7 +490,7 @@ func (s *Storage) GetActiveGames(ctx context.Context) ([]*Game, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query getActiveGames: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	games := make([]*Game, 0)
 	for rows.Next() {
@@ -538,7 +538,7 @@ func (s *Storage) UpdateElo(ctx context.Context, updater EloUpdater) error {
 		if err != nil {
 			return fmt.Errorf("failed to query getGamePlayersAndElo: %w", err)
 		}
-		defer rows.Close()
+		defer rows.Close() //nolint:errcheck
 
 		var players []Player
 		var stateUsers []EloStateUser
@@ -605,7 +605,7 @@ func (s *Storage) GetLeaderboard(ctx context.Context, ut UserType, limit int64) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query searchUsers: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	users := make([]*User, 0, limit)
 	for rows.Next() {

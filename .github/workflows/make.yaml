@@ -7,15 +7,20 @@ on:
 
 
 jobs:
-  LintTest:
+  Lint:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout master
       uses: actions/checkout@main
 
-    # Test code
     - name: Lint
       run: make lint
+
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout master
+      uses: actions/checkout@main
 
     - name: Test
       run: make test

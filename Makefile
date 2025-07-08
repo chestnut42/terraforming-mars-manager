@@ -110,6 +110,7 @@ generate: ./bin/gowrap ./bin/minimock ./bin/goimports
 
 .PHONY: lint
 lint: ./bin/golangci-lint
+	make --version
 	golangci-lint run -v ./...
 
 .PHONY: test-prepare

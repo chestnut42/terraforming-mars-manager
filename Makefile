@@ -1,5 +1,4 @@
-export GOBIN := $(PWD)/bin
-export PATH := $(GOBIN):$(PATH)
+export PATH := $(PWD)/bin:$(PATH)
 
 GOLANGLINT_VERSION := 2.11.0
 PROTOC_VERSION := 28.2
@@ -26,17 +25,8 @@ default: all
 
 
 # Tools
-./bin/goimports: | ./bin
-	go install -modfile tools/go.mod golang.org/x/tools/cmd/goimports
-
 ./bin/golangci-lint: | ./bin
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin v$(GOLANGLINT_VERSION)
-
-./bin/gowrap: | ./bin
-	go install -modfile tools/go.mod github.com/hexdigest/gowrap/cmd/gowrap
-
-./bin/minimock: | ./bin
-	go install -modfile tools/go.mod github.com/gojuno/minimock/v3/cmd/minimock
 
 
 # Proto Tools
@@ -47,17 +37,17 @@ default: all
 ./bin/protoc: | ./bin/protoc-$(PROTOC_VERSION)
 	mv ./bin/protoc-$(PROTOC_VERSION)/bin/protoc ./bin/protoc
 
-./bin/protoc-gen-go: | ./bin
-	go install -modfile tools/go.mod google.golang.org/protobuf/cmd/protoc-gen-go
+./bin/protoc-gen-go: go.mod go.sum | ./bin
+	go build -o $@ google.golang.org/protobuf/cmd/protoc-gen-go
 
-./bin/protoc-gen-go-grpc: | ./bin
-	go install -modfile tools/go.mod google.golang.org/grpc/cmd/protoc-gen-go-grpc
+./bin/protoc-gen-go-grpc: go.mod go.sum | ./bin
+	go build -o $@ google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
-./bin/protoc-gen-grpc-gateway: | ./bin
-	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+./bin/protoc-gen-grpc-gateway: go.mod go.sum | ./bin
+	go build -o $@ github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 
-./bin/protoc-gen-openapiv2: | ./bin
-	go install -modfile tools/go.mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+./bin/protoc-gen-openapiv2: go.mod go.sum | ./bin
+	go build -o $@ github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 
 
 # Proto Dependencies
@@ -101,12 +91,12 @@ proto: ./bin/include/google/api ./bin/include/google/protobuf ./bin/include/prot
 		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
 		--openapiv2_out=. \
 		./pkg/api/*.proto
-	goimports -w -local github.com/chestnut42 .
+	go tool goimports -w -local github.com/chestnut42 .
 
 .PHONY: generate
-generate: ./bin/gowrap ./bin/minimock ./bin/goimports
+generate:
 	go generate ./...
-	goimports -w -local github.com/chestnut42 .
+	go tool goimports -w -local github.com/chestnut42 .
 
 .PHONY: lint
 lint: ./bin/golangci-lint
@@ -128,4 +118,3 @@ build:
 .PHONY: tidy
 tidy:
 	go mod tidy
-	cd tools && go mod tidy

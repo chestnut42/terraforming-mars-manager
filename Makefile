@@ -3,7 +3,7 @@ export PATH := $(PWD)/bin:$(PATH)
 GOLANGLINT_VERSION := 2.11.0
 PROTOC_VERSION := 28.2
 GOOGLE_API_COMMIT := 0fa9ce880be5ea7c3027015849cd4fbfb04812c5
-GRPC_GATEWAY_VERSION := $(shell cat go.mod | grep github.com/grpc-ecosystem/grpc-gateway/v2 | cut -w -f 3 | cut -c 2-)
+GRPC_GATEWAY_VERSION := $(shell go list -m github.com/grpc-ecosystem/grpc-gateway/v2 | cut -d' ' -f2 | cut -c2-)
 
 ifeq ($(shell uname), Darwin)
 	OS_NAME=osx

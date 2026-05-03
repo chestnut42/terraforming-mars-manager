@@ -91,10 +91,9 @@ proto: ./bin/include/google/api ./bin/include/google/protobuf ./bin/include/prot
 		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
 		--openapiv2_out=. \
 		./pkg/api/*.proto
-	go tool goimports -w -local github.com/chestnut42 .
 
 .PHONY: generate
-generate:
+generate: proto
 	go generate ./...
 	go tool goimports -w -local github.com/chestnut42 .
 

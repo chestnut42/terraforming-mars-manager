@@ -78,7 +78,7 @@ func main() {
 		ScanInterval: cfg.Games.ScanInterval,
 	}, storageSvc, marsSvc)
 	appSvc := app.NewService(storageSvc, gameSvc)
-	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
+	authSvc, err := auth.NewService(ctx, authProviders(cfg)...)
 	checkError(err)
 
 	notifySvc := notifications.NewService(notifications.Config{
@@ -140,6 +140,27 @@ func main() {
 			logger.Error("terminated with error", slog.String("error", err.Error()))
 		}
 	}
+}
+
+func authProviders(cfg Config) []auth.Provider {
+	appleAudiences := cfg.Apple.Audiences
+	if len(appleAudiences) == 0 {
+		appleAudiences = []string{cfg.APN.BundleId}
+	}
+	providers := []auth.Provider{{
+		Issuers:   []string{"https://appleid.apple.com"},
+		KeysURL:   cfg.Apple.Keys,
+		Audiences: appleAudiences,
+	}}
+	if len(cfg.Google.ClientIds) > 0 {
+		providers = append(providers, auth.Provider{
+			Issuers:      []string{"https://accounts.google.com", "accounts.google.com"},
+			KeysURL:      cfg.Google.Keys,
+			Audiences:    cfg.Google.ClientIds,
+			UserIdPrefix: "google:",
+		})
+	}
+	return providers
 }
 
 func checkError(err error) {

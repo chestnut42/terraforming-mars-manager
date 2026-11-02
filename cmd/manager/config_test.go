@@ -22,6 +22,7 @@ func TestConfig(t *testing.T) {
 	t.Setenv("MARS_APN_KEY_FILE", "key file")
 	t.Setenv("MARS_APN_BUNDLE_ID", "bundle-id")
 	t.Setenv("MARS_NOTIFY_SCAN_INTERVAL", "42s")
+	t.Setenv("MARS_GOOGLE_CLIENT_IDS", "client-1,client-2")
 
 	c, err := NewConfig()
 	assert.NilError(t, err)
@@ -40,4 +41,8 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, c.Notifications.ScanInterval, 42*time.Second)
 	assert.Equal(t, c.Notifications.WorkersCount, 10)
 	assert.Equal(t, c.Games.ScanInterval, 10*time.Minute)
+	assert.Equal(t, c.Apple.Keys, "https://appleid.apple.com/auth/keys")
+	assert.DeepEqual(t, c.Apple.Audiences, []string(nil))
+	assert.Equal(t, c.Google.Keys, "https://www.googleapis.com/oauth2/v3/certs")
+	assert.DeepEqual(t, c.Google.ClientIds, []string{"client-1", "client-2"})
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strings"
 	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -78,7 +79,9 @@ func main() {
 		ScanInterval: cfg.Games.ScanInterval,
 	}, storageSvc, marsSvc)
 	appSvc := app.NewService(storageSvc, gameSvc)
-	authSvc, err := auth.NewService(ctx, cfg.AppleKeys)
+	providers, err := authProviders(cfg)
+	checkError(err)
+	authSvc, err := auth.NewService(ctx, providers...)
 	checkError(err)
 
 	notifySvc := notifications.NewService(notifications.Config{
@@ -140,6 +143,41 @@ func main() {
 			logger.Error("terminated with error", slog.String("error", err.Error()))
 		}
 	}
+}
+
+func authProviders(cfg Config) ([]auth.Provider, error) {
+	appleAudiences := cleanList(cfg.Apple.Audiences)
+	if len(appleAudiences) == 0 {
+		appleAudiences = cleanList([]string{cfg.APN.BundleId})
+	}
+	if len(appleAudiences) == 0 {
+		return nil, errors.New("no Apple audiences: set MARS_APPLE_AUDIENCES or MARS_APN_BUNDLE_ID")
+	}
+	providers := []auth.Provider{{
+		Issuers:   []string{"https://appleid.apple.com"},
+		KeysURL:   cfg.Apple.Keys,
+		Audiences: appleAudiences,
+	}}
+	if googleClientIds := cleanList(cfg.Google.ClientIds); len(googleClientIds) > 0 {
+		providers = append(providers, auth.Provider{
+			Issuers:      []string{"https://accounts.google.com", "accounts.google.com"},
+			KeysURL:      cfg.Google.Keys,
+			Audiences:    googleClientIds,
+			UserIdPrefix: "google:",
+		})
+	}
+	return providers, nil
+}
+
+// cleanList trims list items and drops empty ones, envconfig does neither
+func cleanList(items []string) []string {
+	var res []string
+	for _, item := range items {
+		if item = strings.TrimSpace(item); item != "" {
+			res = append(res, item)
+		}
+	}
+	return res
 }
 
 func checkError(err error) {

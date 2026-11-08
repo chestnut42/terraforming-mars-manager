@@ -28,12 +28,25 @@ type Games struct {
 	ScanInterval time.Duration `envconfig:"scan_interval" default:"10m"`
 }
 
+type Apple struct {
+	Keys string `envconfig:"keys" default:"https://appleid.apple.com/auth/keys"`
+	// Audiences default to APN bundle id when empty
+	Audiences []string `envconfig:"audiences"`
+}
+
+type Google struct {
+	Keys string `envconfig:"keys" default:"https://www.googleapis.com/oauth2/v3/certs"`
+	// ClientIds are OAuth client IDs, Google sign in is disabled when empty
+	ClientIds []string `envconfig:"client_ids"`
+}
+
 type Config struct {
 	Listen        string        `default:":8080"`
 	GameURL       URL           `envconfig:"game_url" default:"http://localhost:8090/"`
 	PublicGameURL URL           `envconfig:"public_game_url" default:"https://terraforming-mars.herokuapp.com"`
 	PostgresDSN   string        `envconfig:"postgres_dsn" default:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"`
-	AppleKeys     string        `envconfig:"apple_keys" default:"https://appleid.apple.com/auth/keys"`
+	Apple         Apple         `envconfig:"apple"`
+	Google        Google        `envconfig:"google"`
 	APN           APN           `envconfig:"apn"`
 	Notifications Notifications `envconfig:"notify"`
 	Games         Games         `envconfig:"games"`

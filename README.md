@@ -9,7 +9,8 @@ project. **It is not affiliated with FryxGames, Asmodee Digital or Steam in any 
 1. Accounts. Create an account and keep all your games saved in one place. No
 need to write down all your links somewhere
 2. **Push notifications**. This service is capable of sending push
-notifications to mobile client (currently iOS only). If you like to
+notifications to mobile clients (iOS through APNs, Android through Firebase
+Cloud Messaging). If you like to
 play Mars turn-by-turn during the day this is the application you need.
 3. Elo rating. If you often play with your friends you can measure
 who is the best Mars Terraformer

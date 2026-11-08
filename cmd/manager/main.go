@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -13,12 +14,15 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/app"
 	"github.com/chestnut42/terraforming-mars-manager/internal/app/interceptor"
 	"github.com/chestnut42/terraforming-mars-manager/internal/auth"
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/apn"
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/fcm"
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/mars"
 	"github.com/chestnut42/terraforming-mars-manager/internal/database"
 	"github.com/chestnut42/terraforming-mars-manager/internal/docs"
@@ -84,6 +88,9 @@ func main() {
 	authSvc, err := auth.NewService(ctx, providers...)
 	checkError(err)
 
+	fcmSvc, err := newFCMService(ctx, cfg.FCM)
+	checkError(err)
+
 	notifySvc := notifications.NewService(notifications.Config{
 		ActivityBuffer: cfg.Notifications.ActivityBuffer,
 		ScanInterval:   cfg.Notifications.ScanInterval,
@@ -93,6 +100,7 @@ func main() {
 		Game:            gameSvc,
 		SandboxNotifier: sandboxApnSvc,
 		ProdNotifier:    prodApnSvc,
+		FCMNotifier:     fcmSvc,
 	})
 	interceptorSvc := interceptor.NewService(originProxy, storageSvc, marsSvc, notifySvc, gameSvc)
 
@@ -178,6 +186,31 @@ func cleanList(items []string) []string {
 		}
 	}
 	return res
+}
+
+// newFCMService returns nil (FCM disabled) when no credentials are configured.
+func newFCMService(ctx context.Context, cfg FCM) (notifications.FCMNotifier, error) {
+	if cfg.CredentialsFile == "" {
+		logx.Logger(ctx).Info("fcm is disabled: no credentials file")
+		return nil, nil
+	}
+	data, err := os.ReadFile(cfg.CredentialsFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read fcm credentials: %w", err)
+	}
+	creds, err := google.CredentialsFromJSONWithType(ctx, data, google.ServiceAccount, fcm.Scope)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse fcm credentials: %w", err)
+	}
+	projectId := cfg.ProjectId
+	if projectId == "" {
+		projectId = creds.ProjectID
+	}
+	// Background context: the token source outlives this function.
+	return fcm.NewService(fcm.Config{
+		BaseURL:   cfg.BaseURL.URL,
+		ProjectId: projectId,
+	}, oauth2.NewClient(context.Background(), creds.TokenSource))
 }
 
 func checkError(err error) {

@@ -657,8 +657,12 @@ func (x *UpdateMe_Response) GetUser() *User {
 }
 
 type UpdateDeviceToken_Request struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeviceToken   []byte                 `protobuf:"bytes,1,opt,name=device_token,json=deviceToken,proto3" json:"device_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// APNs device token (iOS).
+	DeviceToken []byte `protobuf:"bytes,1,opt,name=device_token,json=deviceToken,proto3" json:"device_token,omitempty"`
+	// Firebase Cloud Messaging registration token (Android). When set,
+	// device_token is ignored. Sending neither clears the token.
+	FcmToken      string `protobuf:"bytes,2,opt,name=fcm_token,json=fcmToken,proto3" json:"fcm_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -698,6 +702,13 @@ func (x *UpdateDeviceToken_Request) GetDeviceToken() []byte {
 		return x.DeviceToken
 	}
 	return nil
+}
+
+func (x *UpdateDeviceToken_Request) GetFcmToken() string {
+	if x != nil {
+		return x.FcmToken
+	}
+	return ""
 }
 
 type UpdateDeviceToken_Response struct {
@@ -1210,10 +1221,11 @@ const file_pkg_api_services_proto_rawDesc = "" +
 	"\bnickname\x18\x01 \x01(\tR\bnickname\x12&\n" +
 	"\x05color\x18\x02 \x01(\x0e2\x10.api.PlayerColorR\x05color\x1a)\n" +
 	"\bResponse\x12\x1d\n" +
-	"\x04user\x18\x01 \x01(\v2\t.api.UserR\x04user\"M\n" +
-	"\x11UpdateDeviceToken\x1a,\n" +
+	"\x04user\x18\x01 \x01(\v2\t.api.UserR\x04user\"j\n" +
+	"\x11UpdateDeviceToken\x1aI\n" +
 	"\aRequest\x12!\n" +
-	"\fdevice_token\x18\x01 \x01(\fR\vdeviceToken\x1a\n" +
+	"\fdevice_token\x18\x01 \x01(\fR\vdeviceToken\x12\x1b\n" +
+	"\tfcm_token\x18\x02 \x01(\tR\bfcmToken\x1a\n" +
 	"\n" +
 	"\bResponse\"\\\n" +
 	"\n" +

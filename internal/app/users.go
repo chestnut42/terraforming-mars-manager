@@ -109,7 +109,11 @@ func (s *Service) UpdateDeviceToken(ctx context.Context, req *api.UpdateDeviceTo
 		return nil, status.Error(codes.Unauthenticated, "user not found")
 	}
 
-	if err := s.storage.UpdateDeviceToken(ctx, user.Id, req.GetDeviceToken(), storage.DeviceTokenTypeProduction); err != nil {
+	token, tokenType := req.GetDeviceToken(), storage.DeviceTokenTypeProduction
+	if fcm := req.GetFcmToken(); fcm != "" {
+		token, tokenType = []byte(fcm), storage.DeviceTokenTypeFCM
+	}
+	if err := s.storage.UpdateDeviceToken(ctx, user.Id, token, tokenType); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}

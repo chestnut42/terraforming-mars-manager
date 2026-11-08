@@ -532,7 +532,12 @@
       "properties": {
         "deviceToken": {
           "type": "string",
-          "format": "byte"
+          "format": "byte",
+          "description": "APNs device token (iOS)."
+        },
+        "fcmToken": {
+          "type": "string",
+          "description": "Firebase Cloud Messaging registration token (Android). When set,\ndevice_token is ignored. Sending neither clears the token."
         }
       }
     },

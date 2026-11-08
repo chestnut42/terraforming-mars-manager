@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/apn"
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/fcm"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/service/game"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
@@ -35,11 +36,17 @@ type Notifier interface {
 	SendNotification(ctx context.Context, device []byte, n apn.Notification) error
 }
 
+type FCMNotifier interface {
+	SendNotification(ctx context.Context, token string, n fcm.Notification) error
+}
+
 type Dependencies struct {
 	Storage         Storage
 	Game            GameService
 	SandboxNotifier Notifier
 	ProdNotifier    Notifier
+	// FCMNotifier is optional; FCM tokens are skipped when it is nil.
+	FCMNotifier FCMNotifier
 }
 
 type Service struct {

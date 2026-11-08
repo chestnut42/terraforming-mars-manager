@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
+
+// clockSkew tolerates small clock differences with token issuers
+const clockSkew = 30 * time.Second
 
 type User struct {
 	Id string
@@ -83,7 +87,12 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*User, error)
 		return nil, fmt.Errorf("unknown issuer: %q", iss)
 	}
 
-	t, err := jwt.ParseString(token, jwt.WithKeySet(p.keys), jwt.WithIssuer(iss))
+	t, err := jwt.ParseString(token,
+		jwt.WithKeySet(p.keys),
+		jwt.WithIssuer(iss),
+		jwt.WithRequiredClaim(jwt.ExpirationKey),
+		jwt.WithAcceptableSkew(clockSkew),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse token: %w", err)
 	}

@@ -46,3 +46,39 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, c.Google.Keys, "https://www.googleapis.com/oauth2/v3/certs")
 	assert.DeepEqual(t, c.Google.ClientIds, []string{"client-1", "client-2"})
 }
+
+func TestAuthProviders(t *testing.T) {
+	t.Setenv("MARS_APN_BUNDLE_ID", "bundle-id")
+	t.Setenv("MARS_GOOGLE_CLIENT_IDS", " client-1, client-2,")
+
+	c, err := NewConfig()
+	assert.NilError(t, err)
+	providers, err := authProviders(c)
+	assert.NilError(t, err)
+	assert.Equal(t, len(providers), 2)
+	assert.DeepEqual(t, providers[0].Audiences, []string{"bundle-id"})
+	assert.DeepEqual(t, providers[1].Audiences, []string{"client-1", "client-2"})
+	assert.Equal(t, providers[1].UserIdPrefix, "google:")
+}
+
+func TestAuthProvidersAppleAudiences(t *testing.T) {
+	t.Setenv("MARS_APN_BUNDLE_ID", "bundle-id")
+	t.Setenv("MARS_APPLE_AUDIENCES", "app-1, app-2")
+
+	c, err := NewConfig()
+	assert.NilError(t, err)
+	providers, err := authProviders(c)
+	assert.NilError(t, err)
+	assert.Equal(t, len(providers), 1)
+	assert.DeepEqual(t, providers[0].Audiences, []string{"app-1", "app-2"})
+}
+
+func TestAuthProvidersNoAppleAudiences(t *testing.T) {
+	t.Setenv("MARS_APN_BUNDLE_ID", " ")
+	t.Setenv("MARS_APPLE_AUDIENCES", ",")
+
+	c, err := NewConfig()
+	assert.NilError(t, err)
+	_, err = authProviders(c)
+	assert.ErrorContains(t, err, "set MARS_APPLE_AUDIENCES or MARS_APN_BUNDLE_ID")
+}

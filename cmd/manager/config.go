@@ -40,6 +40,15 @@ type Google struct {
 	ClientIds []string `envconfig:"client_ids"`
 }
 
+type FCM struct {
+	BaseURL URL `envconfig:"base_url" default:"https://fcm.googleapis.com"`
+	// CredentialsFile is a service account JSON key with the Firebase Cloud
+	// Messaging API Admin role. FCM (Android push) is disabled when empty.
+	CredentialsFile string `envconfig:"credentials_file"`
+	// ProjectId defaults to the service account's project.
+	ProjectId string `envconfig:"project_id"`
+}
+
 type Config struct {
 	Listen        string        `default:":8080"`
 	GameURL       URL           `envconfig:"game_url" default:"http://localhost:8090/"`
@@ -48,6 +57,7 @@ type Config struct {
 	Apple         Apple         `envconfig:"apple"`
 	Google        Google        `envconfig:"google"`
 	APN           APN           `envconfig:"apn"`
+	FCM           FCM           `envconfig:"fcm"`
 	Notifications Notifications `envconfig:"notify"`
 	Games         Games         `envconfig:"games"`
 }

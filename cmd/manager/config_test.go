@@ -45,6 +45,9 @@ func TestConfig(t *testing.T) {
 	assert.DeepEqual(t, c.Apple.Audiences, []string(nil))
 	assert.Equal(t, c.Google.Keys, "https://www.googleapis.com/oauth2/v3/certs")
 	assert.DeepEqual(t, c.Google.ClientIds, []string{"client-1", "client-2"})
+	assert.Equal(t, c.FCM.BaseURL.String(), "https://fcm.googleapis.com")
+	assert.Equal(t, c.FCM.CredentialsFile, "")
+	assert.Equal(t, c.FCM.ProjectId, "")
 }
 
 func TestAuthProviders(t *testing.T) {

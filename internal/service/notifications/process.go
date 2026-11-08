@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/chestnut42/terraforming-mars-manager/internal/client/apn"
+	"github.com/chestnut42/terraforming-mars-manager/internal/client/fcm"
 	"github.com/chestnut42/terraforming-mars-manager/internal/framework/logx"
 	"github.com/chestnut42/terraforming-mars-manager/internal/storage"
 )
@@ -44,20 +45,20 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 				return state, nil
 			}
 
+			if state.DeviceTokenType == storage.DeviceTokenTypeFCM {
+				return s.notifyFCM(ctx, userId, state, activeCount)
+			}
+
 			// If active count decreased, just change the badge.
 			notification := apn.Notification{
 				Badge: activeCount,
 			}
 			if activeCount > state.SentNotification.ActiveGames {
-				gameText := "game is"
-				if activeCount > 1 {
-					gameText = "games are"
-				}
 				notification = apn.Notification{
 					Alert: apn.Alert{
-						Title:    "Mars awaits you!",
+						Title:    notificationTitle,
 						Subtitle: "",
-						Body:     fmt.Sprintf("%d %s awaiting for your decision", activeCount, gameText),
+						Body:     notificationBody(activeCount),
 					},
 					Badge: activeCount,
 					Sound: "default",
@@ -79,6 +80,56 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 		return fmt.Errorf("update sent notification: %w", err)
 	}
 	return nil
+}
+
+const (
+	notificationTitle = "Mars awaits you!"
+	// Android: the tag makes a new notification replace the previous one,
+	// and the channel must match the one created by the app.
+	fcmNotificationTag = "awaiting-games"
+	fcmChannelId       = "turns"
+)
+
+func notificationBody(activeCount int) string {
+	gameText := "game is"
+	if activeCount > 1 {
+		gameText = "games are"
+	}
+	return fmt.Sprintf("%d %s awaiting for your decision", activeCount, gameText)
+}
+
+// notifyFCM handles Android devices. Android has no badge counter, so a
+// notification is only sent when the number of awaiting games grows.
+func (s *Service) notifyFCM(
+	ctx context.Context,
+	userId string,
+	state storage.UserNotificationState,
+	activeCount int,
+) (storage.UserNotificationState, error) {
+	if s.deps.FCMNotifier == nil {
+		logx.Logger(ctx).Debug("fcm is not configured", slog.String("uid", userId))
+		return state, nil
+	}
+
+	if activeCount > state.SentNotification.ActiveGames {
+		err := s.deps.FCMNotifier.SendNotification(ctx, string(state.DeviceToken), fcm.Notification{
+			Title:     notificationTitle,
+			Body:      notificationBody(activeCount),
+			Tag:       fcmNotificationTag,
+			ChannelId: fcmChannelId,
+		})
+		if err != nil {
+			if errors.Is(err, fcm.ErrUnregistered) {
+				logx.Logger(ctx).Info("fcm token unregistered", slog.String("uid", userId))
+				state.DeviceToken = nil
+				return state, nil
+			}
+			return storage.UserNotificationState{}, fmt.Errorf("send fcm notification: %w", err)
+		}
+	}
+
+	state.SentNotification = storage.SentNotification{ActiveGames: activeCount}
+	return state, nil
 }
 
 func (s *Service) getNotifier(t storage.DeviceTokenType) Notifier {

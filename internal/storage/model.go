@@ -27,6 +27,7 @@ type DeviceTokenType string
 const (
 	DeviceTokenTypeSandbox    DeviceTokenType = "sdbx"
 	DeviceTokenTypeProduction DeviceTokenType = "prod"
+	DeviceTokenTypeFCM        DeviceTokenType = "fcm"
 )
 
 type UserType string

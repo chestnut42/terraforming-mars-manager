@@ -304,10 +304,11 @@ func TestProcessUserReminderHours(t *testing.T) {
 	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, &fakeGames{awaiting: 1}, &fakeFCM{}, apnNotifier)
 
 	// A new awaiting game alerts at any hour.
-	clock.now = time.Date(2026, 11, 22, 16, 30, 0, 0, time.UTC)
+	clock.now = time.Date(2026, 11, 22, 5, 0, 0, 0, time.UTC)
 	assert.NilError(t, s.processUser(ctx, "u"))
 	assert.Equal(t, apnNotifier.sent, 1)
 
+	// Overdue since 06:00, the reminder goes out within the window.
 	clock.now = time.Date(2026, 11, 22, 17, 30, 0, 0, time.UTC)
 	assert.NilError(t, s.processUser(ctx, "u"))
 	assert.Equal(t, apnNotifier.sent, 2)

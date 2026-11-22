@@ -668,6 +668,7 @@ func TestStorage(t *testing.T) {
 	})
 
 	t.Run("UpdateSentNotification", func(t *testing.T) {
+		notifiedAt := time.Date(2026, 11, 22, 12, 30, 0, 0, time.UTC)
 		now := time.Now().Truncate(time.Second)
 		storage.nowFunc = func() time.Time { return now }
 		for _, u := range []UpsertUser{
@@ -699,7 +700,7 @@ func TestStorage(t *testing.T) {
 					return UserNotificationState{
 						DeviceToken:      []byte("some token"),
 						DeviceTokenType:  DeviceTokenTypeSandbox,
-						SentNotification: SentNotification{ActiveGames: 3},
+						SentNotification: SentNotification{ActiveGames: 3, UpdatedAt: notifiedAt},
 					}, nil
 				})
 			backgroundErr <- err
@@ -723,7 +724,7 @@ func TestStorage(t *testing.T) {
 				assert.DeepEqual(t, UserNotificationState{
 					DeviceToken:      []byte("some token"),
 					DeviceTokenType:  DeviceTokenTypeSandbox,
-					SentNotification: SentNotification{ActiveGames: 3},
+					SentNotification: SentNotification{ActiveGames: 3, UpdatedAt: notifiedAt},
 				}, state)
 				return state, nil
 			})

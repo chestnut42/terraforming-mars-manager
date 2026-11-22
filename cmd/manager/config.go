@@ -22,6 +22,9 @@ type Notifications struct {
 	ActivityBuffer time.Duration `envconfig:"activity_buffer" default:"1h"`
 	ScanInterval   time.Duration `envconfig:"scan_interval" default:"5m"`
 	WorkersCount   int           `envconfig:"workers_count" default:"10"`
+	// ReminderInterval re-sends the alert while the awaiting games count
+	// stays the same. Zero disables reminders.
+	ReminderInterval time.Duration `envconfig:"reminder_interval" default:"1h"`
 }
 
 type Games struct {

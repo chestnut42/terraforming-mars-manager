@@ -45,15 +45,24 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 				return state, nil
 			}
 
+			// Only count changes are logged, unchanged scans stay quiet.
+			ctx = logx.AddArgs(ctx,
+				slog.String("uid", userId),
+				slog.String("token_type", string(state.DeviceTokenType)),
+				slog.Int("prev_active", state.SentNotification.ActiveGames),
+				slog.Int("active", activeCount))
+
 			if state.DeviceTokenType == storage.DeviceTokenTypeFCM {
-				return s.notifyFCM(ctx, userId, state, activeCount)
+				return s.notifyFCM(ctx, state, activeCount)
 			}
 
 			// If active count decreased, just change the badge.
+			kind := "badge"
 			notification := apn.Notification{
 				Badge: activeCount,
 			}
 			if activeCount > state.SentNotification.ActiveGames {
+				kind = "alert"
 				notification = apn.Notification{
 					Alert: apn.Alert{
 						Title:    notificationTitle,
@@ -68,12 +77,16 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 			notifier := s.getNotifier(state.DeviceTokenType)
 			if err := notifier.SendNotification(ctx, state.DeviceToken, notification); err != nil {
 				if errors.Is(err, apn.ErrBadDeviceToken) {
-					state.DeviceTokenType = s.nextTokenType(state.DeviceTokenType)
+					next := s.nextTokenType(state.DeviceTokenType)
+					logx.Logger(ctx).Info("apn bad device token, switching token type",
+						slog.String("next_token_type", string(next)))
+					state.DeviceTokenType = next
 					return state, nil
 				}
 				return storage.UserNotificationState{}, fmt.Errorf("send notification: %w", err)
 			}
 
+			logx.Logger(ctx).Info("apn notification sent", slog.String("kind", kind))
 			state.SentNotification = storage.SentNotification{ActiveGames: activeCount}
 			return state, nil
 		}); err != nil {
@@ -100,18 +113,20 @@ func notificationBody(activeCount int) string {
 
 // notifyFCM handles Android devices. Android has no badge counter, so a
 // notification is only sent when the number of awaiting games grows.
+// The context logger is expected to carry the user and count attributes.
 func (s *Service) notifyFCM(
 	ctx context.Context,
-	userId string,
 	state storage.UserNotificationState,
 	activeCount int,
 ) (storage.UserNotificationState, error) {
 	if s.deps.FCMNotifier == nil {
-		logx.Logger(ctx).Debug("fcm is not configured", slog.String("uid", userId))
+		logx.Logger(ctx).Debug("fcm is not configured")
 		return state, nil
 	}
 
-	if activeCount > state.SentNotification.ActiveGames {
+	if activeCount <= state.SentNotification.ActiveGames {
+		logx.Logger(ctx).Info("fcm notification skipped: active count decreased")
+	} else {
 		err := s.deps.FCMNotifier.SendNotification(ctx, string(state.DeviceToken), fcm.Notification{
 			Title:     notificationTitle,
 			Body:      notificationBody(activeCount),
@@ -120,12 +135,13 @@ func (s *Service) notifyFCM(
 		})
 		if err != nil {
 			if errors.Is(err, fcm.ErrUnregistered) {
-				logx.Logger(ctx).Info("fcm token unregistered", slog.String("uid", userId))
+				logx.Logger(ctx).Info("fcm token unregistered")
 				state.DeviceToken = nil
 				return state, nil
 			}
 			return storage.UserNotificationState{}, fmt.Errorf("send fcm notification: %w", err)
 		}
+		logx.Logger(ctx).Info("fcm notification sent")
 	}
 
 	state.SentNotification = storage.SentNotification{ActiveGames: activeCount}

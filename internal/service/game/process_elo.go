@@ -3,6 +3,7 @@ package game
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -20,7 +21,8 @@ const (
 
 func (s *Service) ProcessElo(ctx context.Context) error {
 	for {
-		if err := s.storage.UpdateElo(ctx, updateElo); err != nil {
+		// ErrNotFound means there is no finished game to process yet
+		if err := s.storage.UpdateElo(ctx, updateElo); err != nil && !errors.Is(err, storage.ErrNotFound) {
 			logx.Logger(ctx).Error("failed to update elo",
 				slog.Any("error", err))
 		}

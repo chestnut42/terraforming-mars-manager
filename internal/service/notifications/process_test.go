@@ -293,3 +293,46 @@ func TestProcessUserAPNBadDeviceToken(t *testing.T) {
 		assert.Equal(t, st.state.SentNotification.ActiveGames, 0)
 	}
 }
+
+func TestProcessUserReminderHours(t *testing.T) {
+	ctx := context.Background()
+	st := &fakeStorage{state: storage.UserNotificationState{
+		DeviceToken:     []byte{1, 2, 3},
+		DeviceTokenType: storage.DeviceTokenTypeProduction,
+	}}
+	apnNotifier := &fakeAPN{}
+	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, &fakeGames{awaiting: 1}, &fakeFCM{}, apnNotifier)
+
+	// A new awaiting game alerts at any hour.
+	clock.now = time.Date(2026, 11, 22, 16, 30, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 1)
+
+	clock.now = time.Date(2026, 11, 22, 17, 30, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 2)
+
+	// The end hour is outside the window.
+	clock.now = time.Date(2026, 11, 22, 18, 30, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 2)
+
+	// Still waiting the next morning, right before the window.
+	clock.now = time.Date(2026, 11, 23, 11, 59, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 2)
+
+	// A single overdue reminder once the window opens, then hourly again.
+	clock.now = time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 3)
+
+	clock.now = time.Date(2026, 11, 23, 12, 30, 0, 0, time.UTC)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 3)
+
+	// The window is checked in UTC whatever the location of now.
+	clock.now = time.Date(2026, 11, 23, 13, 0, 0, 0, time.FixedZone("UTC-12", -12*60*60))
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 3)
+}

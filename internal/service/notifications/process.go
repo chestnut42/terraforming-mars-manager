@@ -71,10 +71,24 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 	return nil
 }
 
+// Reminders are only sent from reminderStartHour (inclusive) to
+// reminderEndHour (exclusive), in UTC. Alerts for a grown count are not limited.
+const (
+	reminderStartHour = 12
+	reminderEndHour   = 18
+)
+
 // reminderDue reports whether the awaiting games count has stayed the same
 // for a full reminder interval, so the alert should be sent again.
+// Outside the reminder hours the reminder waits for the next window.
 func (s *Service) reminderDue(sent storage.SentNotification, now time.Time) bool {
 	return s.cfg.ReminderInterval > 0 &&
 		sent.ActiveGames > 0 &&
-		now.Sub(sent.UpdatedAt) >= s.cfg.ReminderInterval
+		now.Sub(sent.UpdatedAt) >= s.cfg.ReminderInterval &&
+		inReminderHours(now)
+}
+
+func inReminderHours(t time.Time) bool {
+	hour := t.UTC().Hour()
+	return hour >= reminderStartHour && hour < reminderEndHour
 }

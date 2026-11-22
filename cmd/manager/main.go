@@ -92,9 +92,10 @@ func main() {
 	checkError(err)
 
 	notifySvc := notifications.NewService(notifications.Config{
-		ActivityBuffer: cfg.Notifications.ActivityBuffer,
-		ScanInterval:   cfg.Notifications.ScanInterval,
-		WorkersCount:   cfg.Notifications.WorkersCount,
+		ActivityBuffer:   cfg.Notifications.ActivityBuffer,
+		ScanInterval:     cfg.Notifications.ScanInterval,
+		WorkersCount:     cfg.Notifications.WorkersCount,
+		ReminderInterval: cfg.Notifications.ReminderInterval,
 	}, notifications.Dependencies{
 		Storage:         storageSvc,
 		Game:            gameSvc,

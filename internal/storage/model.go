@@ -67,6 +67,8 @@ type Player struct {
 
 type SentNotification struct {
 	ActiveGames int `json:"ag"`
+	// UpdatedAt is when ActiveGames last changed or a reminder was last sent.
+	UpdatedAt time.Time `json:"ua,omitzero"`
 }
 
 type UserNotificationState struct {

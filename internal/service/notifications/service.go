@@ -20,6 +20,9 @@ type Config struct {
 	ActivityBuffer time.Duration
 	ScanInterval   time.Duration
 	WorkersCount   int
+	// ReminderInterval re-sends the alert while the awaiting games count
+	// stays the same. Zero disables reminders.
+	ReminderInterval time.Duration
 }
 
 type Storage interface {
@@ -52,6 +55,7 @@ type Dependencies struct {
 type Service struct {
 	cfg  Config
 	deps Dependencies
+	now  func() time.Time
 
 	users chan string
 }
@@ -60,6 +64,7 @@ func NewService(cfg Config, deps Dependencies) *Service {
 	return &Service{
 		cfg:  cfg,
 		deps: deps,
+		now:  time.Now,
 
 		users: make(chan string),
 	}

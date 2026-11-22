@@ -61,21 +61,34 @@ func (f *fakeFCM) SendNotification(_ context.Context, _ string, n fcm.Notificati
 
 type fakeAPN struct {
 	sent int
+	err  error
 }
 
 func (f *fakeAPN) SendNotification(context.Context, []byte, apn.Notification) error {
+	if f.err != nil {
+		return f.err
+	}
 	f.sent++
 	return nil
 }
 
-func newFCMTestService(st *fakeStorage, games *fakeGames, fcmNotifier *fakeFCM, apnNotifier *fakeAPN) *Service {
-	return NewService(Config{}, Dependencies{
+type fakeClock struct {
+	now time.Time
+}
+
+func (c *fakeClock) Now() time.Time { return c.now }
+
+func newTestService(cfg Config, st *fakeStorage, games *fakeGames, fcmNotifier *fakeFCM, apnNotifier *fakeAPN) (*Service, *fakeClock) {
+	clock := &fakeClock{now: time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)}
+	s := NewService(cfg, Dependencies{
 		Storage:         st,
 		Game:            games,
 		SandboxNotifier: apnNotifier,
 		ProdNotifier:    apnNotifier,
 		FCMNotifier:     fcmNotifier,
 	})
+	s.now = clock.Now
+	return s, clock
 }
 
 func TestProcessUserFCM(t *testing.T) {
@@ -87,7 +100,7 @@ func TestProcessUserFCM(t *testing.T) {
 	games := &fakeGames{awaiting: 2}
 	fcmNotifier := &fakeFCM{}
 	apnNotifier := &fakeAPN{}
-	s := newFCMTestService(st, games, fcmNotifier, apnNotifier)
+	s, _ := newTestService(Config{}, st, games, fcmNotifier, apnNotifier)
 
 	// More awaiting games: notify.
 	assert.NilError(t, s.processUser(ctx, "u"))
@@ -112,7 +125,7 @@ func TestProcessUserFCMUnregistered(t *testing.T) {
 		DeviceToken:     []byte("fcm-token"),
 		DeviceTokenType: storage.DeviceTokenTypeFCM,
 	}}
-	s := newFCMTestService(st, &fakeGames{awaiting: 1}, &fakeFCM{err: fcm.ErrUnregistered}, &fakeAPN{})
+	s, _ := newTestService(Config{}, st, &fakeGames{awaiting: 1}, &fakeFCM{err: fcm.ErrUnregistered}, &fakeAPN{})
 
 	assert.NilError(t, s.processUser(context.Background(), "u"))
 	assert.Equal(t, len(st.state.DeviceToken), 0)
@@ -145,10 +158,138 @@ func TestProcessUserAPNUnchanged(t *testing.T) {
 	}}
 	apnNotifier := &fakeAPN{}
 	fcmNotifier := &fakeFCM{}
-	s := newFCMTestService(st, &fakeGames{awaiting: 1}, fcmNotifier, apnNotifier)
+	s, _ := newTestService(Config{}, st, &fakeGames{awaiting: 1}, fcmNotifier, apnNotifier)
 
 	assert.NilError(t, s.processUser(context.Background(), "u"))
 	assert.Equal(t, apnNotifier.sent, 1)
 	assert.Equal(t, len(fcmNotifier.sent), 0)
 	assert.Equal(t, st.state.SentNotification.ActiveGames, 1)
+}
+
+func TestProcessUserReminderAPN(t *testing.T) {
+	ctx := context.Background()
+	st := &fakeStorage{state: storage.UserNotificationState{
+		DeviceToken:     []byte{1, 2, 3},
+		DeviceTokenType: storage.DeviceTokenTypeProduction,
+	}}
+	games := &fakeGames{awaiting: 1}
+	apnNotifier := &fakeAPN{}
+	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, games, &fakeFCM{}, apnNotifier)
+
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 1)
+	assert.Equal(t, st.state.SentNotification.UpdatedAt, clock.now)
+
+	// Still stuck, but less than an hour passed.
+	clock.now = clock.now.Add(59 * time.Minute)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 1)
+
+	// An hour without progress: remind.
+	clock.now = clock.now.Add(time.Minute)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 2)
+	assert.Equal(t, st.state.SentNotification.UpdatedAt, clock.now)
+
+	// And again an hour later.
+	clock.now = clock.now.Add(time.Hour)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 3)
+
+	// Progress made: badge update resets the clock.
+	clock.now = clock.now.Add(30 * time.Minute)
+	games.awaiting = 0
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 4)
+
+	// Nothing awaiting: no reminders.
+	clock.now = clock.now.Add(2 * time.Hour)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 4)
+}
+
+func TestProcessUserReminderFCM(t *testing.T) {
+	ctx := context.Background()
+	st := &fakeStorage{state: storage.UserNotificationState{
+		DeviceToken:     []byte("fcm-token"),
+		DeviceTokenType: storage.DeviceTokenTypeFCM,
+	}}
+	games := &fakeGames{awaiting: 2}
+	fcmNotifier := &fakeFCM{}
+	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, games, fcmNotifier, &fakeAPN{})
+
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, len(fcmNotifier.sent), 1)
+
+	// One game played, one still waiting: no alert, clock reset.
+	clock.now = clock.now.Add(50 * time.Minute)
+	games.awaiting = 1
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, len(fcmNotifier.sent), 1)
+
+	// An hour since the first alert, but not since the progress.
+	clock.now = clock.now.Add(10 * time.Minute)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, len(fcmNotifier.sent), 1)
+
+	// An hour since the progress: remind.
+	clock.now = clock.now.Add(50 * time.Minute)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, len(fcmNotifier.sent), 2)
+	assert.Equal(t, fcmNotifier.sent[1].Body, "1 game is awaiting for your decision")
+}
+
+func TestProcessUserReminderLegacyState(t *testing.T) {
+	ctx := context.Background()
+	// Saved before reminders existed: count set, no timestamp.
+	st := &fakeStorage{state: storage.UserNotificationState{
+		DeviceToken:      []byte{1, 2, 3},
+		DeviceTokenType:  storage.DeviceTokenTypeProduction,
+		SentNotification: storage.SentNotification{ActiveGames: 1},
+	}}
+	apnNotifier := &fakeAPN{}
+	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, &fakeGames{awaiting: 1}, &fakeFCM{}, apnNotifier)
+
+	// No immediate reminder, the clock starts now.
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 0)
+	assert.Equal(t, st.state.SentNotification.UpdatedAt, clock.now)
+
+	clock.now = clock.now.Add(time.Hour)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 1)
+}
+
+func TestProcessUserReminderDisabled(t *testing.T) {
+	ctx := context.Background()
+	st := &fakeStorage{state: storage.UserNotificationState{
+		DeviceToken:     []byte{1, 2, 3},
+		DeviceTokenType: storage.DeviceTokenTypeProduction,
+	}}
+	apnNotifier := &fakeAPN{}
+	s, clock := newTestService(Config{ReminderInterval: time.Hour}, st, &fakeGames{awaiting: 1}, &fakeFCM{}, apnNotifier)
+	s.cfg.ReminderInterval = 0
+
+	assert.NilError(t, s.processUser(ctx, "u"))
+	clock.now = clock.now.Add(5 * time.Hour)
+	assert.NilError(t, s.processUser(ctx, "u"))
+	assert.Equal(t, apnNotifier.sent, 1)
+}
+
+func TestProcessUserAPNBadDeviceToken(t *testing.T) {
+	for from, to := range map[storage.DeviceTokenType]storage.DeviceTokenType{
+		storage.DeviceTokenTypeProduction: storage.DeviceTokenTypeSandbox,
+		storage.DeviceTokenTypeSandbox:    storage.DeviceTokenTypeProduction,
+	} {
+		st := &fakeStorage{state: storage.UserNotificationState{
+			DeviceToken:     []byte{1, 2, 3},
+			DeviceTokenType: from,
+		}}
+		s, _ := newTestService(Config{}, st, &fakeGames{awaiting: 1}, &fakeFCM{}, &fakeAPN{err: apn.ErrBadDeviceToken})
+
+		assert.NilError(t, s.processUser(context.Background(), "u"))
+		assert.Equal(t, st.state.DeviceTokenType, to)
+		// Not marked as sent, so it is retried with the other environment.
+		assert.Equal(t, st.state.SentNotification.ActiveGames, 0)
+	}
 }

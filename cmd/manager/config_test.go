@@ -40,6 +40,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, c.Notifications.ActivityBuffer, time.Hour)
 	assert.Equal(t, c.Notifications.ScanInterval, 42*time.Second)
 	assert.Equal(t, c.Notifications.WorkersCount, 10)
+	assert.Equal(t, c.Notifications.ReminderInterval, time.Hour)
 	assert.Equal(t, c.Games.ScanInterval, 10*time.Minute)
 	assert.Equal(t, c.Apple.Keys, "https://appleid.apple.com/auth/keys")
 	assert.DeepEqual(t, c.Apple.Audiences, []string(nil))

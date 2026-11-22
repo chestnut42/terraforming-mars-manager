@@ -62,9 +62,9 @@ func (s *Service) processUser(ctx context.Context, userId string) error {
 				slog.Bool("reminder", reminder))
 
 			alert := reminder || activeCount > state.SentNotification.ActiveGames
-			sent := storage.SentNotification{ActiveGames: activeCount, UpdatedAt: now}
+			next := storage.SentNotification{ActiveGames: activeCount, UpdatedAt: now}
 
-			return s.getNotifier(state.DeviceTokenType).notify(ctx, state, sent, alert)
+			return s.getNotifier(state.DeviceTokenType).notify(ctx, state, next, alert)
 		}); err != nil {
 		return fmt.Errorf("update sent notification: %w", err)
 	}

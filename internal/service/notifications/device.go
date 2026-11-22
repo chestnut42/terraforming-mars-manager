@@ -23,14 +23,14 @@ const (
 // deviceNotifier delivers the awaiting games count to one kind of device token.
 // alert asks for a visible notification; otherwise the device may only be
 // updated silently, or skipped. It returns the state to store: SentNotification
-// is set to sent once the device is up to date, and the token is adjusted when
+// is set to next once the device is up to date, and the token is adjusted when
 // the push service rejects it.
 // The context logger is expected to carry the user and count attributes.
 type deviceNotifier interface {
 	notify(
 		ctx context.Context,
 		state storage.UserNotificationState,
-		sent storage.SentNotification,
+		next storage.SentNotification,
 		alert bool,
 	) (storage.UserNotificationState, error)
 }
@@ -68,21 +68,21 @@ type apnNotifier struct {
 func (n apnNotifier) notify(
 	ctx context.Context,
 	state storage.UserNotificationState,
-	sent storage.SentNotification,
+	next storage.SentNotification,
 	alert bool,
 ) (storage.UserNotificationState, error) {
 	kind := "badge"
 	notification := apn.Notification{
-		Badge: sent.ActiveGames,
+		Badge: next.ActiveGames,
 	}
 	if alert {
 		kind = "alert"
 		notification = apn.Notification{
 			Alert: apn.Alert{
 				Title: notificationTitle,
-				Body:  notificationBody(sent.ActiveGames),
+				Body:  notificationBody(next.ActiveGames),
 			},
-			Badge: sent.ActiveGames,
+			Badge: next.ActiveGames,
 			Sound: "default",
 		}
 	}
@@ -98,7 +98,7 @@ func (n apnNotifier) notify(
 	}
 
 	logx.Logger(ctx).Info("apn notification sent", slog.String("kind", kind))
-	state.SentNotification = sent
+	state.SentNotification = next
 	return state, nil
 }
 
@@ -111,18 +111,18 @@ type fcmNotifier struct {
 func (n fcmNotifier) notify(
 	ctx context.Context,
 	state storage.UserNotificationState,
-	sent storage.SentNotification,
+	next storage.SentNotification,
 	alert bool,
 ) (storage.UserNotificationState, error) {
 	if !alert {
 		logx.Logger(ctx).Info("fcm notification skipped: active count decreased")
-		state.SentNotification = sent
+		state.SentNotification = next
 		return state, nil
 	}
 
 	err := n.client.SendNotification(ctx, string(state.DeviceToken), fcm.Notification{
 		Title:     notificationTitle,
-		Body:      notificationBody(sent.ActiveGames),
+		Body:      notificationBody(next.ActiveGames),
 		Tag:       fcmNotificationTag,
 		ChannelId: fcmChannelId,
 	})
@@ -136,7 +136,7 @@ func (n fcmNotifier) notify(
 	}
 
 	logx.Logger(ctx).Info("fcm notification sent")
-	state.SentNotification = sent
+	state.SentNotification = next
 	return state, nil
 }
 

@@ -61,9 +61,13 @@ func (f *fakeFCM) SendNotification(_ context.Context, _ string, n fcm.Notificati
 
 type fakeAPN struct {
 	sent int
+	err  error
 }
 
 func (f *fakeAPN) SendNotification(context.Context, []byte, apn.Notification) error {
+	if f.err != nil {
+		return f.err
+	}
 	f.sent++
 	return nil
 }
@@ -280,4 +284,22 @@ func TestProcessUserReminderDisabled(t *testing.T) {
 	clock.now = clock.now.Add(5 * time.Hour)
 	assert.NilError(t, s.processUser(ctx, "u"))
 	assert.Equal(t, apnNotifier.sent, 1)
+}
+
+func TestProcessUserAPNBadDeviceToken(t *testing.T) {
+	for from, to := range map[storage.DeviceTokenType]storage.DeviceTokenType{
+		storage.DeviceTokenTypeProduction: storage.DeviceTokenTypeSandbox,
+		storage.DeviceTokenTypeSandbox:    storage.DeviceTokenTypeProduction,
+	} {
+		st := &fakeStorage{state: storage.UserNotificationState{
+			DeviceToken:     []byte{1, 2, 3},
+			DeviceTokenType: from,
+		}}
+		s := newFCMTestService(st, &fakeGames{awaiting: 1}, &fakeFCM{}, &fakeAPN{err: apn.ErrBadDeviceToken})
+
+		assert.NilError(t, s.processUser(context.Background(), "u"))
+		assert.Equal(t, st.state.DeviceTokenType, to)
+		// Not marked as sent, so it is retried with the other environment.
+		assert.Equal(t, st.state.SentNotification.ActiveGames, 0)
+	}
 }

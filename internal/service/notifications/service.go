@@ -21,7 +21,7 @@ type Config struct {
 	ScanInterval   time.Duration
 	WorkersCount   int
 	// ReminderInterval re-sends the alert while the awaiting games count
-	// stays the same. Zero disables reminders.
+	// stays the same, within the reminder hours. Zero disables reminders.
 	ReminderInterval time.Duration
 }
 
